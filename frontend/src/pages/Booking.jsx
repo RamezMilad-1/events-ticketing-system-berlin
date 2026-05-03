@@ -1,265 +1,202 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import { eventService, bookingService } from '../services/api';
-import { useAuth } from '../auth/AuthContext';
-import axios from 'axios';
 import TheaterSeating from '../components/TheaterSeating';
+import Loader from '../components/ui/Loader';
+
+const formatCurrency = (val) =>
+    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val || 0);
 
 const Booking = () => {
+    const { eventId } = useParams();
+    const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+
     const [event, setEvent] = useState(null);
     const [ticketSelections, setTicketSelections] = useState({});
     const [selectedSeats, setSelectedSeats] = useState([]);
     const [bookedSeats, setBookedSeats] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const { eventId } = useParams();
-    const { user } = useAuth();
-    const navigate = useNavigate();
-    const [searchParams] = useSearchParams();
+    const [submitting, setSubmitting] = useState(false);
 
     useEffect(() => {
-        const fetchEventDetails = async () => {
+        const fetchEvent = async () => {
             try {
                 const response = await eventService.getEventById(eventId);
-                setEvent(response.data);
+                const e = response.data;
+                setEvent(e);
 
-                // Fetch booked seats for theater events
-                if (response.data.category === 'theater') {
+                if (e.category === 'theater') {
                     try {
                         const bookingsResponse = await bookingService.getBookingsForEvent(eventId);
-                        const bookedSeatsList = bookingsResponse.data
-                            .filter(booking => booking.selectedSeats && booking.status !== 'canceled')
-                            .flatMap(booking => booking.selectedSeats);
-                        setBookedSeats(bookedSeatsList);
-                    } catch (bookingError) {
-                        console.log('No bookings found or error fetching bookings:', bookingError);
+                        const list = bookingsResponse.data
+                            .filter((b) => b.selectedSeats && b.status !== 'canceled')
+                            .flatMap((b) => b.selectedSeats);
+                        setBookedSeats(list);
+                    } catch {
                         setBookedSeats([]);
                     }
-                }
 
-                // Parse selected seats from URL parameters
-                const selectedSeatsParam = searchParams.get('selectedSeats');
-                if (selectedSeatsParam) {
-                    const seats = selectedSeatsParam.split(',').filter(seat => seat.trim());
-                    setSelectedSeats(seats);
-                }
-
-                // Initialize ticket selections based on event type
-                if (response.data.category === 'theater') {
-                    // Theater events use seat selection
-                    setSelectedSeats(prev => {
-                        const selectedSeatsParam = searchParams.get('selectedSeats');
-                        if (selectedSeatsParam) {
-                            const seats = selectedSeatsParam.split(',').filter(seat => seat.trim());
-                            return seats;
-                        }
-                        return prev;
+                    const seatsParam = searchParams.get('selectedSeats');
+                    if (seatsParam) {
+                        setSelectedSeats(seatsParam.split(',').filter(Boolean));
+                    }
+                } else if (e.ticketTypes?.length > 0) {
+                    const initial = {};
+                    e.ticketTypes.forEach((t) => {
+                        initial[t.type] = 0;
                     });
-                } else if (response.data.ticketTypes && response.data.ticketTypes.length > 0) {
-                    // Regular events with ticket types
-                    const initialSelections = {};
-                    response.data.ticketTypes.forEach(ticket => {
-                        initialSelections[ticket.type] = 0;
-                    });
-                    setTicketSelections(initialSelections);
+                    setTicketSelections(initial);
                 }
-
-                setLoading(false);
             } catch (err) {
-                setError(err.response?.data?.message || 'Failed to fetch event details');
+                toast.error(err.response?.data?.message || 'Failed to load event.');
+            } finally {
                 setLoading(false);
             }
         };
-
-        fetchEventDetails();
+        fetchEvent();
     }, [eventId, searchParams]);
 
     const handleTicketQuantityChange = (ticketType, quantity) => {
-        setTicketSelections(prev => ({
+        setTicketSelections((prev) => ({
             ...prev,
-            [ticketType]: Math.max(0, parseInt(quantity) || 0)
+            [ticketType]: Math.max(0, parseInt(quantity, 10) || 0),
         }));
     };
 
     const handleSeatSelect = (seatId) => {
-        setSelectedSeats(prev => {
-            if (prev.includes(seatId)) {
-                return prev.filter(id => id !== seatId);
-            } else {
-                return [...prev, seatId];
-            }
-        });
+        setSelectedSeats((prev) => (prev.includes(seatId) ? prev.filter((id) => id !== seatId) : [...prev, seatId]));
+    };
+
+    // Mirror of TheaterSeating's tierForRow — keep these in sync.
+    const tierForRow = (rowNum, totalRows, ticketTypes) => {
+        if (!ticketTypes || ticketTypes.length === 0) return null;
+        if (ticketTypes.length === 1) return ticketTypes[0];
+        if (ticketTypes.length === 2) {
+            return rowNum <= Math.ceil(totalRows / 2) ? ticketTypes[0] : ticketTypes[1];
+        }
+        if (rowNum <= Math.floor(totalRows * 0.3)) return ticketTypes[0];
+        if (rowNum <= Math.floor(totalRows * 0.7)) return ticketTypes[1];
+        return ticketTypes[2];
     };
 
     const calculateTotal = () => {
         if (!event) return 0;
 
         if (event.category === 'theater') {
-            // For theater events, calculate based on selected seats and their ticket types
+            const totalRows = event.custom_fields?.seating_rows || 10;
             return selectedSeats.reduce((total, seatId) => {
                 const [row] = seatId.split('-');
-                const rowNum = parseInt(row);
-                const rows = event.custom_fields?.seating_rows || 10;
-                
-                // Determine ticket type based on row (same logic as TheaterSeating component)
-                let ticketTypeIndex = 0;
-                if (event.ticketTypes && event.ticketTypes.length > 1) {
-                    if (rowNum <= Math.floor(rows * 0.3)) {
-                        ticketTypeIndex = 0; // Front rows
-                    } else if (rowNum <= Math.floor(rows * 0.7)) {
-                        ticketTypeIndex = 1; // Middle rows
-                    } else {
-                        ticketTypeIndex = 2; // Back rows
-                    }
-                }
-                
-                const ticketPrice = event.ticketTypes?.[ticketTypeIndex]?.price || 50;
-                return total + ticketPrice;
+                const rowNum = parseInt(row, 10);
+                const tier = tierForRow(rowNum, totalRows, event.ticketTypes);
+                return total + (tier?.price || event.ticketPrice || 50);
             }, 0);
-        } else if (event.ticketTypes && event.ticketTypes.length > 0) {
-            return event.ticketTypes.reduce((total, ticket) => {
-                const quantity = ticketSelections[ticket.type] || 0;
-                return total + (quantity * ticket.price);
-            }, 0);
-        } else {
-            // Legacy system
-            return (ticketSelections.legacy || 0) * event.ticketPrice;
         }
+
+        if (event.ticketTypes?.length > 0) {
+            return event.ticketTypes.reduce(
+                (total, t) => total + (ticketSelections[t.type] || 0) * t.price,
+                0
+            );
+        }
+
+        return (ticketSelections.legacy || 0) * (event.ticketPrice || 0);
     };
 
-    const getTotalTicketsSelected = () => {
-        if (event?.category === 'theater') {
-            return selectedSeats.length;
+    const totalSelected = () => {
+        if (event?.category === 'theater') return selectedSeats.length;
+        return Object.values(ticketSelections).reduce((sum, q) => sum + q, 0);
+    };
+
+    const buildPayload = () => {
+        if (event.category === 'theater') {
+            const totalRows = event.custom_fields?.seating_rows || 10;
+            const groups = {};
+            selectedSeats.forEach((seatId) => {
+                const [row] = seatId.split('-');
+                const rowNum = parseInt(row, 10);
+                const tier = tierForRow(rowNum, totalRows, event.ticketTypes);
+                const ticketType = tier?.type || 'general';
+                groups[ticketType] = (groups[ticketType] || 0) + 1;
+            });
+
+            return {
+                event: eventId,
+                ticketBookings: Object.entries(groups).map(([ticketType, quantity]) => ({ ticketType, quantity })),
+                selectedSeats,
+            };
         }
-        return Object.values(ticketSelections).reduce((sum, qty) => sum + qty, 0);
+
+        if (event.ticketTypes?.length > 0) {
+            const ticketBookings = Object.entries(ticketSelections)
+                .filter(([, q]) => q > 0)
+                .map(([ticketType, quantity]) => ({ ticketType, quantity }));
+            return { event: eventId, ticketBookings };
+        }
+
+        return { event: eventId, numberOfTickets: ticketSelections.legacy || 0 };
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
-        const totalTickets = getTotalTicketsSelected();
-        if (totalTickets === 0) {
-            setError('Please select at least one seat or ticket.');
+        if (totalSelected() === 0) {
+            toast.error('Please select at least one ticket or seat.');
             return;
         }
 
+        setSubmitting(true);
         try {
-            let bookingData;
-
-            if (event.category === 'theater') {
-                // Theater events: book specific seats with their ticket types
-                const ticketBookings = [];
-                const rows = event.custom_fields?.seating_rows || 10;
-                
-                // Group selected seats by ticket type
-                const seatsByType = {};
-                selectedSeats.forEach(seatId => {
-                    const [row] = seatId.split('-');
-                    const rowNum = parseInt(row);
-                    
-                    let ticketTypeIndex = 0;
-                    if (event.ticketTypes && event.ticketTypes.length > 1) {
-                        if (rowNum <= Math.floor(rows * 0.3)) {
-                            ticketTypeIndex = 0; // Front rows
-                        } else if (rowNum <= Math.floor(rows * 0.7)) {
-                            ticketTypeIndex = 1; // Middle rows
-                        } else {
-                            ticketTypeIndex = 2; // Back rows
-                        }
-                    }
-                    
-                    const ticketType = event.ticketTypes?.[ticketTypeIndex]?.type || 'general';
-                    if (!seatsByType[ticketType]) {
-                        seatsByType[ticketType] = {
-                            type: ticketType,
-                            price: event.ticketTypes?.[ticketTypeIndex]?.price || 50,
-                            seats: []
-                        };
-                    }
-                    seatsByType[ticketType].seats.push(seatId);
-                });
-                
-                // Create ticket bookings
-                Object.values(seatsByType).forEach(typeData => {
-                    ticketBookings.push({
-                        ticketType: typeData.type,
-                        quantity: typeData.seats.length,
-                        price: typeData.price
-                    });
-                });
-
-                bookingData = {
-                    event: eventId,
-                    ticketBookings,
-                    selectedSeats // Store seat information
-                };
-            } else if (event.ticketTypes && event.ticketTypes.length > 0) {
-                // Regular events with ticket types
-                const ticketBookings = Object.entries(ticketSelections)
-                    .filter(([_, quantity]) => quantity > 0)
-                    .map(([ticketType, quantity]) => ({ ticketType, quantity }));
-
-                bookingData = {
-                    event: eventId,
-                    ticketBookings
-                };
+            const { data } = await bookingService.createBooking(buildPayload());
+            toast.success(
+                `Booking confirmed! Total: ${formatCurrency(data.booking?.totalPrice || calculateTotal())}`
+            );
+            const newBookingId = data.booking?._id;
+            if (newBookingId) {
+                navigate(`/bookings/${newBookingId}`);
             } else {
-                // Legacy system
-                bookingData = {
-                    event: eventId,
-                    numberOfTickets: ticketSelections.legacy || 0
-                };
-            }
-
-            const response = await axios.post('http://localhost:3000/api/v1/bookings', bookingData, {
-                withCredentials: true
-            });
-
-            if (response.data) {
                 navigate('/booking-success');
             }
         } catch (err) {
-            setError(err.response?.data?.message || 'Failed to book tickets');
+            toast.error(err.response?.data?.message || 'Failed to book tickets.');
+        } finally {
+            setSubmitting(false);
         }
     };
 
-    if (loading) {
-        return (
-            <div className="flex justify-center items-center min-h-[400px]">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            </div>
-        );
-    }
-
-    if (error) {
-        return (
-            <div className="text-center text-red-600 p-4">
-                Error: {error}
-            </div>
-        );
-    }
+    if (loading) return <Loader fullScreen label="Loading booking..." />;
 
     if (!event) {
         return (
-            <div className="text-center p-4">
-                Event not found
+            <div className="container mx-auto max-w-2xl px-4 py-16 text-center">
+                <p className="text-2xl font-bold text-slate-900">Event not found</p>
             </div>
         );
     }
 
+    const total = calculateTotal();
+    const totalCount = totalSelected();
+
     return (
-        <div className="container mx-auto px-4 py-8">
-            <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-6">
-                <h1 className="text-3xl font-bold mb-6">Book Tickets</h1>
-                <div className="mb-6">
-                    <h2 className="text-xl font-semibold mb-2">{event.title}</h2>
-                    <p className="text-gray-600">{event.description}</p>
-                </div>
-                <form onSubmit={handleSubmit}>
+        <div className="container mx-auto max-w-3xl px-4 py-8">
+            <div className="mb-6">
+                <button
+                    onClick={() => navigate(-1)}
+                    className="inline-flex items-center gap-2 text-slate-600 hover:text-indigo-600 font-medium"
+                >
+                    ← Back
+                </button>
+            </div>
+
+            <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6 sm:p-8">
+                <h1 className="text-3xl font-bold text-slate-900 mb-2">Book Tickets</h1>
+                <h2 className="text-lg font-semibold text-slate-700">{event.title}</h2>
+                <p className="text-slate-600 mt-1">{event.description}</p>
+
+                <form onSubmit={handleSubmit} className="mt-6 space-y-6">
                     {event.category === 'theater' ? (
-                        // Theater events: Seat selection
-                        <div className="mb-6">
-                            <h3 className="text-lg font-semibold mb-4">Select Your Seats</h3>
+                        <div>
+                            <h3 className="text-lg font-bold text-slate-900 mb-3">Choose your seats</h3>
                             <TheaterSeating
                                 event={event}
                                 selectedSeats={selectedSeats}
@@ -268,40 +205,54 @@ const Booking = () => {
                                 bookedSeats={bookedSeats}
                             />
                         </div>
-                    ) : event.ticketTypes && event.ticketTypes.length > 0 ? (
-                        // Regular events: Multiple ticket types
-                        <div className="mb-6">
-                            <h3 className="text-lg font-semibold mb-4">Select Tickets</h3>
-                            <div className="space-y-4">
+                    ) : event.ticketTypes?.length > 0 ? (
+                        <div>
+                            <h3 className="text-lg font-bold text-slate-900 mb-3">Choose tickets</h3>
+                            <div className="space-y-3">
                                 {event.ticketTypes.map((ticket) => (
-                                    <div key={ticket.type} className="flex items-center justify-between p-4 border rounded-lg">
+                                    <div
+                                        key={ticket.type}
+                                        className="flex items-center justify-between p-4 border border-slate-200 rounded-xl bg-white"
+                                    >
                                         <div>
-                                            <h4 className="font-medium">{ticket.type}</h4>
-                                            <p className="text-sm text-gray-600">${ticket.price} each</p>
-                                            <p className="text-xs text-gray-500">{ticket.remaining} available</p>
+                                            <h4 className="font-semibold text-slate-900 capitalize">{ticket.type}</h4>
+                                            <p className="text-sm text-slate-500">${ticket.price} each</p>
+                                            <p className="text-xs text-slate-400">{ticket.remaining} available</p>
                                         </div>
-                                        <div className="flex items-center space-x-2">
+                                        <div className="flex items-center gap-2">
                                             <button
                                                 type="button"
-                                                onClick={() => handleTicketQuantityChange(ticket.type, (ticketSelections[ticket.type] || 0) - 1)}
-                                                className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
+                                                onClick={() =>
+                                                    handleTicketQuantityChange(
+                                                        ticket.type,
+                                                        (ticketSelections[ticket.type] || 0) - 1
+                                                    )
+                                                }
                                                 disabled={(ticketSelections[ticket.type] || 0) <= 0}
+                                                className="px-3 py-1 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:opacity-40"
                                             >
-                                                -
+                                                –
                                             </button>
                                             <input
                                                 type="number"
                                                 min="0"
                                                 max={ticket.remaining}
                                                 value={ticketSelections[ticket.type] || 0}
-                                                onChange={(e) => handleTicketQuantityChange(ticket.type, e.target.value)}
-                                                className="w-16 text-center border rounded px-2 py-1"
+                                                onChange={(e) =>
+                                                    handleTicketQuantityChange(ticket.type, e.target.value)
+                                                }
+                                                className="w-16 text-center border border-slate-300 rounded-lg px-2 py-1"
                                             />
                                             <button
                                                 type="button"
-                                                onClick={() => handleTicketQuantityChange(ticket.type, (ticketSelections[ticket.type] || 0) + 1)}
-                                                className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
+                                                onClick={() =>
+                                                    handleTicketQuantityChange(
+                                                        ticket.type,
+                                                        (ticketSelections[ticket.type] || 0) + 1
+                                                    )
+                                                }
                                                 disabled={(ticketSelections[ticket.type] || 0) >= ticket.remaining}
+                                                className="px-3 py-1 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:opacity-40"
                                             >
                                                 +
                                             </button>
@@ -311,9 +262,8 @@ const Booking = () => {
                             </div>
                         </div>
                     ) : (
-                        // Legacy system: Single ticket type
-                        <div className="mb-4">
-                            <label className="block text-gray-700 text-sm font-bold mb-2">
+                        <div>
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">
                                 Number of Tickets
                             </label>
                             <input
@@ -321,29 +271,30 @@ const Booking = () => {
                                 min="1"
                                 max={event.remainingTickets}
                                 value={ticketSelections.legacy || 0}
-                                onChange={(e) => handleTicketQuantityChange('legacy', parseInt(e.target.value))}
-                                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                                onChange={(e) => handleTicketQuantityChange('legacy', e.target.value)}
+                                className="input"
                             />
                         </div>
                     )}
 
-                    <div className="mb-6">
-                        <p className="text-lg font-semibold">
-                            Total Price: ${calculateTotal().toFixed(2)}
-                        </p>
-                        {getTotalTicketsSelected() > 0 && (
-                            <p className="text-sm text-gray-600">
-                                {event.category === 'theater' ? 'seats' : 'tickets'} selected
-                            </p>
-                        )}
+                    <div className="rounded-xl bg-indigo-50 p-4 flex items-baseline justify-between">
+                        <span className="text-sm font-bold uppercase tracking-wide text-indigo-700">Total</span>
+                        <span className="text-2xl font-bold text-indigo-700">{formatCurrency(total)}</span>
                     </div>
+
+                    {totalCount > 0 && (
+                        <p className="text-sm text-slate-600">
+                            {totalCount} {event.category === 'theater' ? 'seat' : 'ticket'}
+                            {totalCount === 1 ? '' : 's'} selected
+                        </p>
+                    )}
 
                     <button
                         type="submit"
-                        className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors duration-300"
-                        disabled={getTotalTicketsSelected() === 0}
+                        disabled={submitting || totalCount === 0}
+                        className="btn btn-primary w-full disabled:opacity-50"
                     >
-                        Confirm Booking
+                        {submitting ? 'Confirming...' : 'Confirm Booking'}
                     </button>
                 </form>
             </div>
@@ -351,4 +302,4 @@ const Booking = () => {
     );
 };
 
-export default Booking; 
+export default Booking;

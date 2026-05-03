@@ -1,19 +1,19 @@
 const express = require('express');
 const router = express.Router();
-const bookingController = require("../Controller/bookingController");
-const authorizationMiddleware = require('../Middleware/authorizationMiddleware');
 
+const bookingController = require('../Controller/bookingController');
+const authorize = require('../Middleware/authorizationMiddleware');
 
-// POST /api/v1/bookings - Book an event
-router.post("/", bookingController.bookAnEvent);
+// POST /api/v1/bookings — book tickets for an event (Standard User)
+router.post('/', authorize(['Standard User']), bookingController.bookAnEvent);
 
-// GET /api/v1/bookings/event/:eventId - Get bookings for an event (public for seat availability)
-router.get("/event/:eventId", bookingController.getBookingsForEvent);
+// GET /api/v1/bookings/event/:eventId — used by theater seat picker
+router.get('/event/:eventId', bookingController.getBookingsForEvent);
 
-// GET /api/v1/bookings/:id - Get a booking by ID for the authenticated user
-router.get("/:id", bookingController.getBookingById);
+// GET /api/v1/bookings/:id — own booking details (Standard User)
+router.get('/:id', authorize(['Standard User']), bookingController.getBookingById);
 
-// DELETE /api/v1/bookings/:id - Cancel a booking for the authenticated user
-router.delete("/:id", bookingController.cancelBooking);
+// DELETE /api/v1/bookings/:id — cancel own booking (Standard User)
+router.delete('/:id', authorize(['Standard User']), bookingController.cancelBooking);
 
 module.exports = router;

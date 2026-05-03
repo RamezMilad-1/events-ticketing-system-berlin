@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import { toast } from 'react-toastify';
+import { eventService } from '../services/api';
 import DynamicCustomFields from "../components/DynamicCustomFields";
 import { categoryOptions, getDefaultCustomFields } from "../utils/categoryFields";
 
 const CreateEvent = () => {
     const navigate = useNavigate();
+    const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState(null);
     const [imagePreview, setImagePreview] = useState("");
     const [customFields, setCustomFields] = useState({});
@@ -55,31 +57,47 @@ const CreateEvent = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setSubmitting(true);
+        setError(null);
         try {
             const eventData = {
                 ...formData,
-                custom_fields: customFields
+                custom_fields: { ...customFields },
             };
+
+            // Promote ticket_types from custom_fields to top-level ticketTypes (matches backend contract)
+            if (Array.isArray(customFields.ticket_types) && customFields.ticket_types.length > 0) {
+                eventData.ticketTypes = customFields.ticket_types.map((tt) => ({
+                    type: tt.type,
+                    price: Number(tt.price) || 0,
+                    quantity: Number(tt.quantity) || 0,
+                    remaining: Number(tt.quantity) || 0,
+                }));
+                const { ticket_types, ...rest } = eventData.custom_fields;
+                eventData.custom_fields = rest;
+            }
 
             // Convert number fields in custom_fields to numbers
             if (eventData.custom_fields) {
-                const categoryFields = (await import('../utils/categoryFields')).categoryFields;
+                const { categoryFields } = await import('../utils/categoryFields');
                 const fields = categoryFields[formData.category] || {};
-                Object.keys(eventData.custom_fields).forEach(key => {
+                Object.keys(eventData.custom_fields).forEach((key) => {
                     if (fields[key] && fields[key].type === 'number') {
                         eventData.custom_fields[key] = Number(eventData.custom_fields[key]);
                     }
                 });
             }
 
-            await axios.post(`http://localhost:3000/api/v1/events`, eventData, {
-                withCredentials: true
-            });
-
+            await eventService.createEvent(eventData);
+            toast.success('Event created — pending admin approval.');
             navigate('/my-events');
         } catch (err) {
             console.error('Create error:', err);
-            setError(err.response?.data?.message || "Failed to create event");
+            const msg = err.response?.data?.message || 'Failed to create event';
+            setError(msg);
+            toast.error(msg);
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -204,9 +222,10 @@ const CreateEvent = () => {
                         </button>
                         <button
                             type="submit"
-                            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+                            disabled={submitting}
+                            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
                         >
-                            Create Event
+                            {submitting ? 'Creating...' : 'Create Event'}
                         </button>
                     </div>
                 </div>

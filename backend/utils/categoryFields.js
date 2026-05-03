@@ -26,9 +26,8 @@ const categoryFields = {
         performers: { type: 'array', label: 'Performers', required: true },
         duration_minutes: { type: 'number', label: 'Duration (minutes)', required: true },
         intermission: { type: 'boolean', label: 'Has Intermission', required: false },
-        seating_required: { type: 'boolean', label: 'Seating Required', required: false, default: true },
-        seating_rows: { type: 'number', label: 'Number of Rows', required: false },
-        seating_columns: { type: 'number', label: 'Seats per Row', required: false },
+        seating_rows: { type: 'number', label: 'Number of Rows', required: true, default: 10 },
+        seating_columns: { type: 'number', label: 'Seats per Row', required: true, default: 20 },
         ticket_types: { 
             type: 'array', 
             label: 'Ticket Types', 

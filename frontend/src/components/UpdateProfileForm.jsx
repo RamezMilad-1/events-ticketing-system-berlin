@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useAuth } from '../auth/AuthContext';
+import { userService } from '../services/api';
 
 const UpdateProfileForm = ({ userDetails, onClose, onUpdate }) => {
-  const { user, token } = useAuth();
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     name: userDetails.name || '',
     email: userDetails.email || '',
@@ -159,11 +159,7 @@ const UpdateProfileForm = ({ userDetails, onClose, onUpdate }) => {
     setSubmitError('');
 
     try {
-      if (!token) {
-        throw new Error('You must be logged in to update your profile');
-      }
-
-      // Check if the profile picture is too large
+      // Compress oversized profile pictures before sending
       if (formData.profilePicture && formData.profilePicture.length > 1024 * 1024) {
         try {
           const compressedImage = await compressImage(formData.profilePicture);
@@ -173,47 +169,27 @@ const UpdateProfileForm = ({ userDetails, onClose, onUpdate }) => {
         }
       }
 
-      console.log('Submitting form data:', {
-        ...formData,
-        profilePicture: formData.profilePicture ? `${formData.profilePicture.substring(0, 50)}...` : 'no_image'
-      });
+      const response = await userService.updateProfile(formData);
 
-      const response = await axios({
-        method: 'put',
-        url: 'http://localhost:3000/api/v1/users/profile',
-        data: formData,
-        withCredentials: true,
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-
-      console.log('Server response:', response.data);
-
-      if (response.data.success) {
+      if (response.data?.success) {
         onUpdate(response.data.user);
         onClose();
       } else {
-        setSubmitError(response.data.message || 'Failed to update profile');
+        setSubmitError(response.data?.message || 'Failed to update profile');
       }
     } catch (err) {
       console.error('Update profile error:', err);
-      if (!token) {
-        setSubmitError('You must be logged in to update your profile. Please log in and try again.');
-      } else {
-        setSubmitError(
-          err.response?.data?.message || 
-          'An error occurred while updating profile. Please try again.'
-        );
-      }
+      setSubmitError(
+        err.response?.data?.message ||
+        'An error occurred while updating profile. Please try again.'
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Rest of the component remains the same...
   // Show a message if not logged in
-  if (!user || !token) {
+  if (!user) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">

@@ -1,153 +1,99 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { eventService } from '../services/api';
-import { useAuth } from '../auth/AuthContext';
+import { useEffect, useState } from 'react';
+import { toast } from 'react-toastify';
 import {
-    BarChart,
-    Bar,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    Legend,
-    ResponsiveContainer,
-    PieChart,
-    Pie,
-    Cell
+    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+    PieChart, Pie, Cell,
 } from 'recharts';
+import { userService } from '../services/api';
+import Loader from '../components/ui/Loader';
+import EmptyState from '../components/ui/EmptyState';
 
-const COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444'];
+const COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
+
+const STATUS_BADGE = {
+    approved: 'bg-emerald-100 text-emerald-700',
+    pending: 'bg-amber-100 text-amber-700',
+    declined: 'bg-rose-100 text-rose-700',
+};
+
+const formatCurrency = (val) =>
+    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val || 0);
 
 const EventAnalytics = () => {
-    const [analytics, setAnalytics] = useState([]);
+    const [events, setEvents] = useState([]);
+    const [totals, setTotals] = useState({ events: 0, totalTickets: 0, ticketsSold: 0, revenue: 0 });
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [totalStats, setTotalStats] = useState({
-        totalEvents: 0,
-        totalTickets: 0,
-        totalSold: 0,
-        totalRevenue: 0
-    });
-    const navigate = useNavigate();
-    const { user } = useAuth();
 
     useEffect(() => {
-        if (user?.role !== 'Organizer') {
-            navigate('/');
-            return;
-        }
-        fetchAnalytics();
-    }, [user, navigate]);
+        const fetch = async () => {
+            try {
+                const { data } = await userService.getMyEventAnalytics();
+                setEvents(Array.isArray(data?.events) ? data.events : []);
+                setTotals(data?.totals || { events: 0, totalTickets: 0, ticketsSold: 0, revenue: 0 });
+            } catch (err) {
+                toast.error(err.response?.data?.message || 'Failed to load analytics');
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetch();
+    }, []);
 
-    const fetchAnalytics = async () => {
-        try {
-            const response = await eventService.getMyEventAnalytics();
-            const events = response.data;
-            
-            // Calculate total statistics
-            const stats = events.reduce((acc, event) => {
-                const soldTickets = event.totalTickets - event.remainingTickets;
-                return {
-                    totalEvents: acc.totalEvents + 1,
-                    totalTickets: acc.totalTickets + event.totalTickets,
-                    totalSold: acc.totalSold + soldTickets,
-                    totalRevenue: acc.totalRevenue + (soldTickets * event.ticketPrice)
-                };
-            }, { totalEvents: 0, totalTickets: 0, totalSold: 0, totalRevenue: 0 });
+    if (loading) return <Loader fullScreen label="Crunching numbers..." />;
 
-            setTotalStats(stats);
-            setAnalytics(events);
-        } catch (err) {
-            setError(err.response?.data?.message || 'Failed to fetch analytics');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    if (loading) {
+    if (events.length === 0) {
         return (
-            <div className="flex justify-center items-center min-h-[400px]">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            </div>
-        );
-    }
-
-    if (error) {
-        return (
-            <div className="container mx-auto px-4 py-8">
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-                    {error}
-                </div>
+            <div className="container mx-auto max-w-3xl px-4 py-10">
+                <EmptyState
+                    icon="📊"
+                    title="No analytics yet"
+                    description="Once you create events and start selling tickets, charts and metrics will appear here."
+                />
             </div>
         );
     }
 
     const pieData = [
-        { name: 'Sold Tickets', value: totalStats.totalSold },
-        { name: 'Available Tickets', value: totalStats.totalTickets - totalStats.totalSold }
+        { name: 'Sold', value: totals.ticketsSold },
+        { name: 'Available', value: Math.max(0, totals.totalTickets - totals.ticketsSold) },
     ];
 
     return (
-        <div className="container mx-auto px-4 py-8">
-            <h1 className="text-3xl font-bold mb-8">Event Analytics Dashboard</h1>
+        <div className="container mx-auto max-w-7xl px-4 py-10">
+            <header className="mb-8">
+                <h1 className="text-3xl font-bold text-slate-900">Event analytics</h1>
+                <p className="text-slate-600 mt-1">Track ticket sales and revenue across your events.</p>
+            </header>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <div className="bg-white p-6 rounded-lg shadow-md">
-                    <h3 className="text-lg font-semibold text-gray-700 mb-2">Total Events</h3>
-                    <p className="text-3xl font-bold text-blue-600">{totalStats.totalEvents}</p>
-                </div>
-                <div className="bg-white p-6 rounded-lg shadow-md">
-                    <h3 className="text-lg font-semibold text-gray-700 mb-2">Total Tickets</h3>
-                    <p className="text-3xl font-bold text-green-600">{totalStats.totalTickets}</p>
-                </div>
-                <div className="bg-white p-6 rounded-lg shadow-md">
-                    <h3 className="text-lg font-semibold text-gray-700 mb-2">Tickets Sold</h3>
-                    <p className="text-3xl font-bold text-yellow-600">{totalStats.totalSold}</p>
-                </div>
-                <div className="bg-white p-6 rounded-lg shadow-md">
-                    <h3 className="text-lg font-semibold text-gray-700 mb-2">Total Revenue</h3>
-                    <p className="text-3xl font-bold text-purple-600">${totalStats.totalRevenue.toFixed(2)}</p>
-                </div>
+            {/* Summary cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <StatCard label="Events" value={totals.events} accent="text-indigo-600" />
+                <StatCard label="Total tickets" value={totals.totalTickets} accent="text-emerald-600" />
+                <StatCard label="Tickets sold" value={totals.ticketsSold} accent="text-amber-600" />
+                <StatCard label="Revenue" value={formatCurrency(totals.revenue)} accent="text-purple-600" />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="bg-white p-6 rounded-lg shadow-md">
-                    <h2 className="text-xl font-semibold mb-4">Ticket Sales by Event</h2>
-                    <div className="h-[400px]">
+            {/* Charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <h2 className="text-lg font-bold text-slate-900 mb-4">% Booked per event</h2>
+                    <div className="h-[360px]">
                         <ResponsiveContainer width="100%" height="100%">
-                            <BarChart
-                                data={analytics}
-                                margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
-                            >
+                            <BarChart data={events} margin={{ top: 20, right: 30, left: 0, bottom: 60 }}>
                                 <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis
-                                    dataKey="title"
-                                    angle={-45}
-                                    textAnchor="end"
-                                    height={80}
-                                    interval={0}
-                                />
-                                <YAxis />
-                                <Tooltip />
+                                <XAxis dataKey="title" angle={-45} textAnchor="end" height={80} interval={0} fontSize={12} />
+                                <YAxis domain={[0, 100]} unit="%" />
+                                <Tooltip formatter={(value) => `${value}%`} />
                                 <Legend />
-                                <Bar
-                                    dataKey="totalTickets"
-                                    name="Total Tickets"
-                                    fill="#4F46E5"
-                                />
-                                <Bar
-                                    dataKey="remainingTickets"
-                                    name="Remaining Tickets"
-                                    fill="#E5E7EB"
-                                />
+                                <Bar dataKey="percentageBooked" name="% Booked" fill="#4F46E5" radius={[8, 8, 0, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-lg shadow-md">
-                    <h2 className="text-xl font-semibold mb-4">Overall Ticket Distribution</h2>
-                    <div className="h-[400px]">
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <h2 className="text-lg font-bold text-slate-900 mb-4">Overall ticket distribution</h2>
+                    <div className="h-[360px]">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                                 <Pie
@@ -155,14 +101,15 @@ const EventAnalytics = () => {
                                     cx="50%"
                                     cy="50%"
                                     innerRadius={80}
-                                    outerRadius={140}
-                                    fill="#8884d8"
-                                    paddingAngle={5}
+                                    outerRadius={130}
+                                    paddingAngle={4}
                                     dataKey="value"
-                                    label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                                    label={({ name, percent }) =>
+                                        `${name} (${(percent * 100).toFixed(0)}%)`
+                                    }
                                 >
-                                    {pieData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                    {pieData.map((entry, i) => (
+                                        <Cell key={`c-${i}`} fill={COLORS[i % COLORS.length]} />
                                     ))}
                                 </Pie>
                                 <Tooltip />
@@ -172,66 +119,62 @@ const EventAnalytics = () => {
                 </div>
             </div>
 
-            <div className="mt-8 bg-white rounded-lg shadow-md overflow-hidden">
-                <h2 className="text-xl font-semibold p-6 border-b">Detailed Event Statistics</h2>
+            {/* Detail table */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <h2 className="text-lg font-bold text-slate-900 p-6 border-b border-slate-200">Detailed statistics</h2>
                 <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
+                    <table className="min-w-full divide-y divide-slate-200">
+                        <thead className="bg-slate-50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Event Name
+                                <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                                    Event
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Total Tickets
+                                <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                                    Total
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
                                     Sold
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                                    % Booked
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
                                     Revenue
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
                                     Status
                                 </th>
                             </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {analytics.map((event) => {
-                                const soldTickets = event.totalTickets - event.remainingTickets;
-                                const revenue = soldTickets * event.ticketPrice;
-                                return (
-                                    <tr key={event._id}>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm font-medium text-gray-900">
-                                                {event.title}
+                        <tbody className="divide-y divide-slate-200">
+                            {events.map((event) => (
+                                <tr key={event._id}>
+                                    <td className="px-6 py-4 font-medium text-slate-900">{event.title}</td>
+                                    <td className="px-6 py-4 text-slate-700">{event.totalTickets}</td>
+                                    <td className="px-6 py-4 text-slate-700">{event.ticketsSold}</td>
+                                    <td className="px-6 py-4 text-slate-700">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-32 h-2 rounded-full bg-slate-200 overflow-hidden">
+                                                <div
+                                                    className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-blue-500"
+                                                    style={{ width: `${Math.min(100, event.percentageBooked)}%` }}
+                                                />
                                             </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm text-gray-900">
-                                                {event.totalTickets}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm text-gray-900">
-                                                {soldTickets}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm text-gray-900">
-                                                ${revenue.toFixed(2)}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                                ${event.status === 'approved' ? 'bg-green-100 text-green-800' : 
-                                                event.status === 'declined' ? 'bg-red-100 text-red-800' : 
-                                                'bg-yellow-100 text-yellow-800'}`}>
-                                                {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
+                                            <span className="text-sm">{event.percentageBooked}%</span>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 text-slate-700">{formatCurrency(event.revenue)}</td>
+                                    <td className="px-6 py-4">
+                                        <span
+                                            className={`inline-block px-2 py-1 rounded-full text-xs font-bold uppercase ${
+                                                STATUS_BADGE[event.status] || ''
+                                            }`}
+                                        >
+                                            {event.status}
+                                        </span>
+                                    </td>
+                                </tr>
+                            ))}
                         </tbody>
                     </table>
                 </div>
@@ -240,4 +183,11 @@ const EventAnalytics = () => {
     );
 };
 
-export default EventAnalytics; 
+const StatCard = ({ label, value, accent }) => (
+    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+        <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500 mb-2">{label}</h3>
+        <p className={`text-3xl font-bold ${accent}`}>{value}</p>
+    </div>
+);
+
+export default EventAnalytics;

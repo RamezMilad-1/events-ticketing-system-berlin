@@ -1,17 +1,20 @@
-// authorization
-import { Navigate } from "react-router-dom";
-import { useAuth } from "./AuthContext";
+import { Navigate, useLocation } from 'react-router-dom';
+import { useAuth } from './AuthContext';
 
 const ProtectedRoute = ({ allowedRoles, children }) => {
-  const { user } = useAuth();
-  if (!user ) {
-    return <Navigate to="/login" replace />;
-  }
-  if (!allowedRoles.includes(user.role)) {
-    return <Navigate to="/unauthorized" replace />;
-  }
+    const { user } = useAuth();
+    const location = useLocation();
 
-  return children;
+    if (!user) {
+        // Preserve intended URL so login can return the user here afterwards
+        return <Navigate to="/login" state={{ from: location }} replace />;
+    }
+
+    if (allowedRoles && allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
+        return <Navigate to="/unauthorized" replace />;
+    }
+
+    return children;
 };
 
 export default ProtectedRoute;

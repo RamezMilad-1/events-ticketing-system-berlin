@@ -1,6 +1,40 @@
+const mongoose = require('mongoose');
 const Booking = require('../Model/BookingSchema');
 const Event = require('../Model/EventSchema');
-const mongoose = require('mongoose');
+
+/**
+ * Tries to run the work inside a Mongo transaction. If the deployment is a single-node
+ * Mongo (no replica set), transactions aren't supported — fall back to a non-transactional
+ * sequential execution. Either way, we end up doing availability check + decrement +
+ * booking save together.
+ */
+async function withOptionalTransaction(fn) {
+    let session = null;
+    try {
+        session = await mongoose.startSession();
+    } catch (e) {
+        // older drivers / no replica set — proceed without session
+    }
+
+    if (!session) return fn(null);
+
+    try {
+        let result;
+        await session.withTransaction(async () => {
+            result = await fn(session);
+        });
+        return result;
+    } catch (e) {
+        if (e?.code === 20 || /Transaction numbers are only allowed/i.test(e?.message || '')) {
+            // standalone mongo — retry without transactions
+            console.warn('[booking] transactions unsupported on this Mongo deployment, falling back');
+            return fn(null);
+        }
+        throw e;
+    } finally {
+        await session.endSession();
+    }
+}
 
 exports.bookAnEvent = async (req, res) => {
     try {
@@ -8,247 +42,209 @@ exports.bookAnEvent = async (req, res) => {
         const { event: eventId, numberOfTickets, ticketBookings, selectedSeats } = req.body;
 
         if (!mongoose.Types.ObjectId.isValid(eventId)) {
-            return res.status(400).json({ message: "Invalid event ID." });
+            return res.status(400).json({ success: false, message: 'Invalid event ID.' });
         }
 
         const event = await Event.findById(eventId);
         if (!event) {
-            return res.status(404).json({ message: "Event not found." });
+            return res.status(404).json({ success: false, message: 'Event not found.' });
+        }
+        if (event.status !== 'approved') {
+            return res.status(400).json({ success: false, message: 'This event is not available for booking.' });
         }
 
-        // For theater events, ensure ticketTypes exist
-        if (event.category === 'theater' && (!event.ticketTypes || event.ticketTypes.length === 0)) {
-            // Create default ticket types for theater events
-            const totalSeats = (event.custom_fields?.seating_rows || 10) * (event.custom_fields?.seating_columns || 20);
-            event.ticketTypes = [
-                { type: 'orchestra', price: 150, quantity: Math.floor(totalSeats * 0.3), remaining: Math.floor(totalSeats * 0.3) },
-                { type: 'mezzanine', price: 100, quantity: Math.floor(totalSeats * 0.4), remaining: Math.floor(totalSeats * 0.4) },
-                { type: 'balcony', price: 75, quantity: Math.floor(totalSeats * 0.3), remaining: Math.floor(totalSeats * 0.3) }
-            ];
-            await event.save(); // Save the updated event
-        }
-
-        // For theater events, validate selected seats are not already booked
-        // Temporarily disabled for debugging
-        /*
-        if (selectedSeats && Array.isArray(selectedSeats) && selectedSeats.length > 0) {
-            try {
-                // Check each selected seat individually
-                for (const seatId of selectedSeats) {
-                    const existingBooking = await Booking.findOne({ 
-                        event: eventId, 
-                        status: { $ne: 'canceled' },
-                        selectedSeats: seatId
-                    });
-                    
-                    if (existingBooking) {
-                        return res.status(400).json({ message: `Seat ${seatId} is already booked.` });
-                    }
-                }
-            } catch (dbError) {
-                console.error("Database error checking seat availability:", dbError);
-                // Continue without seat validation for now
-                console.log("Continuing without seat validation due to database error");
+        // Seat-conflict check for theater bookings
+        if (Array.isArray(selectedSeats) && selectedSeats.length > 0) {
+            const conflict = await Booking.findOne({
+                event: eventId,
+                status: 'confirmed',
+                selectedSeats: { $in: selectedSeats },
+            });
+            if (conflict) {
+                const taken = conflict.selectedSeats.filter((s) => selectedSeats.includes(s));
+                return res.status(409).json({
+                    success: false,
+                    message: `Seats already booked: ${taken.join(', ')}`,
+                });
             }
         }
-        */
 
         let totalPrice = 0;
-        let bookingData = {};
+        const bookingData = { user: userId, event: eventId };
 
-        // Handle new ticket types system
-        if (ticketBookings && Array.isArray(ticketBookings)) {
-            if (ticketBookings.length === 0) {
-                return res.status(400).json({ message: "At least one ticket type must be selected." });
+        // --- Multi-tier ticket types path ---
+        if (Array.isArray(ticketBookings) && ticketBookings.length > 0) {
+            if (!event.ticketTypes || event.ticketTypes.length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'This event does not have ticket types configured.',
+                });
             }
 
-            const processedBookings = [];
+            const processed = [];
             for (const booking of ticketBookings) {
                 const { ticketType, quantity } = booking;
+                const qty = Number(quantity);
 
-                if (!ticketType || !quantity || quantity <= 0) {
-                    return res.status(400).json({ message: "Invalid ticket type or quantity." });
+                if (!ticketType || !qty || qty <= 0) {
+                    return res.status(400).json({ success: false, message: 'Invalid ticket type or quantity.' });
                 }
 
-                // Find the ticket type in event.ticketTypes
-                let eventTicketType = event.ticketTypes.find(tt => tt.type === ticketType);
-                
-                // If not found, try to find by index or create a default
-                if (!eventTicketType && event.ticketTypes && event.ticketTypes.length > 0) {
-                    // For theater events, map common names
-                    const typeMapping = {
-                        'orchestra': ['orchestra', 'front', 'vip'],
-                        'mezzanine': ['mezzanine', 'middle', 'standard'],
-                        'balcony': ['balcony', 'back', 'economy'],
-                        'general': ['general', 'regular', 'standard']
-                    };
-                    
-                    for (const [standardType, aliases] of Object.entries(typeMapping)) {
-                        if (aliases.includes(ticketType.toLowerCase())) {
-                            eventTicketType = event.ticketTypes.find(tt => tt.type === standardType);
-                            break;
-                        }
-                    }
-                }
-                
-                // If still not found, use the first available ticket type
-                if (!eventTicketType && event.ticketTypes && event.ticketTypes.length > 0) {
-                    eventTicketType = event.ticketTypes[0];
-                }
-                
-                // If no ticket types at all, create a default one
+                const eventTicketType = event.ticketTypes.find((tt) => tt.type === ticketType);
                 if (!eventTicketType) {
-                    event.ticketTypes = [{
-                        type: 'general',
-                        price: 50,
-                        quantity: 1000,
-                        remaining: 1000
-                    }];
-                    eventTicketType = event.ticketTypes[0];
-                    await event.save(); // Save the updated event
+                    return res.status(400).json({
+                        success: false,
+                        message: `Unknown ticket type "${ticketType}".`,
+                    });
+                }
+                if (eventTicketType.remaining < qty) {
+                    return res.status(400).json({
+                        success: false,
+                        message: `Not enough "${ticketType}" tickets left. Available: ${eventTicketType.remaining}, requested: ${qty}.`,
+                    });
                 }
 
-                if (eventTicketType.remaining < quantity) {
-                    return res.status(400).json({ message: `Not enough tickets available for '${ticketType}'. Available: ${eventTicketType.remaining}, Requested: ${quantity}` });
-                }
-
-                const price = eventTicketType.price * quantity;
-                totalPrice += price;
-
-                processedBookings.push({
-                    ticketType,
-                    quantity: Number(quantity),
-                    price: eventTicketType.price
-                });
-
-                // Update remaining tickets
-                eventTicketType.remaining -= quantity;
+                processed.push({ ticketType, quantity: qty, price: eventTicketType.price });
+                totalPrice += eventTicketType.price * qty;
+                eventTicketType.remaining -= qty;
             }
 
-            bookingData.ticketBookings = processedBookings;
+            bookingData.ticketBookings = processed;
             bookingData.totalPrice = totalPrice;
 
-        // Handle legacy system (backward compatibility)
-        } else if (numberOfTickets) {
-            if (numberOfTickets <= 0) {
-                return res.status(400).json({ message: "Invalid number of tickets." });
+        // --- Legacy single-tier path ---
+        } else if (numberOfTickets != null) {
+            const qty = Number(numberOfTickets);
+            if (!qty || qty <= 0) {
+                return res.status(400).json({ success: false, message: 'Number of tickets must be at least 1.' });
+            }
+            if (event.ticketTypes && event.ticketTypes.length > 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'This event uses ticket types — please specify ticketBookings.',
+                });
+            }
+            if ((event.remainingTickets || 0) < qty) {
+                return res.status(400).json({ success: false, message: 'Not enough tickets available.' });
             }
 
-            // Check if event has legacy ticket fields
-            if (!event.ticketPrice || !event.remainingTickets) {
-                return res.status(400).json({ message: "This event uses the new ticket type system. Please specify ticketBookings." });
-            }
-
-            if (event.remainingTickets < numberOfTickets) {
-                return res.status(400).json({ message: "Not enough tickets available." });
-            }
-
-            totalPrice = numberOfTickets * event.ticketPrice;
-            event.remainingTickets -= numberOfTickets;
-
-            bookingData.numberOfTickets = numberOfTickets;
+            totalPrice = qty * (event.ticketPrice || 0);
+            event.remainingTickets -= qty;
+            bookingData.numberOfTickets = qty;
             bookingData.totalPrice = totalPrice;
         } else {
-            return res.status(400).json({ message: "Either ticketBookings or numberOfTickets must be provided." });
+            return res.status(400).json({
+                success: false,
+                message: 'Provide either ticketBookings or numberOfTickets.',
+            });
         }
 
-        // Include selectedSeats if provided
-        if (selectedSeats && Array.isArray(selectedSeats)) {
+        if (Array.isArray(selectedSeats) && selectedSeats.length > 0) {
             bookingData.selectedSeats = selectedSeats;
         }
 
-        const booking = new Booking({
-            user: userId,
-            event: eventId,
-            ...bookingData
+        const booking = await withOptionalTransaction(async (session) => {
+            const created = await Booking.create(
+                [{ ...bookingData, status: 'confirmed' }],
+                session ? { session } : undefined
+            );
+            await event.save(session ? { session } : undefined);
+            return created[0];
         });
 
-        console.log("Creating booking with data:", bookingData);
-        await booking.save();
-        console.log("Booking saved successfully");
-        
-        await event.save(); // Save the updated remaining tickets
-        console.log("Event saved successfully");
-
-        return res.status(201).json({ message: "Booking successful!", booking });
+        return res.status(201).json({ success: true, message: 'Booking successful', booking });
     } catch (err) {
-        console.error("Booking error:", err);
-        console.error("Error stack:", err.stack);
-        if (err.name === 'ValidationError') {
-            return res.status(400).json({ message: "Validation error: " + err.message });
-        }
-        return res.status(500).json({ message: "Internal server error: " + err.message });
+        console.error('Booking error:', err);
+        return res.status(500).json({ success: false, message: err.message });
     }
 };
 
-// GET /api/v1/bookings/:id
+// GET /api/v1/bookings/:id (own only)
 exports.getBookingById = async (req, res) => {
     try {
         const bookingId = req.params.id;
-        const userId = req.user.userId;
-
         if (!mongoose.Types.ObjectId.isValid(bookingId)) {
-            return res.status(400).json({ message: "Invalid booking ID." });
+            return res.status(400).json({ success: false, message: 'Invalid booking ID.' });
         }
 
-        const booking = await Booking.findOne({ _id: bookingId, user: userId }).populate("event");
+        const booking = await Booking.findOne({ _id: bookingId, user: req.user.userId }).populate('event');
         if (!booking) {
-            return res.status(404).json({ message: "Booking not found." });
+            return res.status(404).json({ success: false, message: 'Booking not found.' });
         }
 
-        return res.status(200).json({ booking });
+        return res.status(200).json({ success: true, booking });
     } catch (err) {
-        console.error("Error fetching booking:", err);
-        return res.status(500).json({ message: "Internal server error." });
+        console.error('Error fetching booking:', err);
+        return res.status(500).json({ success: false, message: 'Internal server error.' });
     }
 };
 
-// DELETE /api/v1/bookings/:id - Cancel a booking for the authenticated user
+// DELETE /api/v1/bookings/:id — cancel and RETURN tickets (per spec)
 exports.cancelBooking = async (req, res) => {
     try {
         const bookingId = req.params.id;
-        const userId = req.user.userId;
-
         if (!mongoose.Types.ObjectId.isValid(bookingId)) {
-            return res.status(400).json({ message: "Invalid booking ID." });
+            return res.status(400).json({ success: false, message: 'Invalid booking ID.' });
         }
 
-        const booking = await Booking.findOne({ _id: bookingId, user: userId });
+        const booking = await Booking.findOne({ _id: bookingId, user: req.user.userId });
         if (!booking) {
-            return res.status(404).json({ message: "Booking not found." });
+            return res.status(404).json({ success: false, message: 'Booking not found.' });
         }
-
         if (booking.status === 'canceled') {
-            return res.status(400).json({ message: "Booking is already canceled." });
+            return res.status(400).json({ success: false, message: 'Booking is already canceled.' });
         }
 
-        booking.status = 'canceled';
-        await booking.save();
+        const event = await Event.findById(booking.event);
 
-        return res.status(200).json({ success: true, message: "Booking canceled successfully.", booking });
+        await withOptionalTransaction(async (session) => {
+            // Return tickets to inventory (spec: deletion increases ticket count)
+            if (event) {
+                if (Array.isArray(booking.ticketBookings) && booking.ticketBookings.length > 0) {
+                    booking.ticketBookings.forEach((tb) => {
+                        const tt = event.ticketTypes.find((t) => t.type === tb.ticketType);
+                        if (tt) {
+                            tt.remaining = (tt.remaining || 0) + (tb.quantity || 0);
+                            if (tt.remaining > tt.quantity) tt.remaining = tt.quantity;
+                        }
+                    });
+                } else if (booking.numberOfTickets) {
+                    event.remainingTickets = (event.remainingTickets || 0) + booking.numberOfTickets;
+                    if (typeof event.totalTickets === 'number' && event.remainingTickets > event.totalTickets) {
+                        event.remainingTickets = event.totalTickets;
+                    }
+                }
+                await event.save(session ? { session } : undefined);
+            }
+
+            booking.status = 'canceled';
+            await booking.save(session ? { session } : undefined);
+        });
+
+        return res.status(200).json({ success: true, message: 'Booking canceled successfully.', booking });
     } catch (err) {
-        console.error("Error canceling booking:", err);
-        return res.status(500).json({ message: "Internal server error." });
+        console.error('Error canceling booking:', err);
+        return res.status(500).json({ success: false, message: 'Internal server error.' });
     }
 };
 
-// GET /api/v1/bookings/event/:eventId - Get all bookings for an event (for seat availability)
+// GET /api/v1/bookings/event/:eventId — used by theater seat picker to know which seats are taken.
+// Authenticated; returns minimal info (only seat strings + status).
 exports.getBookingsForEvent = async (req, res) => {
     try {
-        const eventId = req.params.eventId;
-
+        const { eventId } = req.params;
         if (!mongoose.Types.ObjectId.isValid(eventId)) {
-            return res.status(400).json({ message: "Invalid event ID." });
+            return res.status(400).json({ success: false, message: 'Invalid event ID.' });
         }
 
-        const bookings = await Booking.find({ 
-            event: eventId, 
-            status: { $ne: 'canceled' } 
+        const bookings = await Booking.find({
+            event: eventId,
+            status: 'confirmed',
         }).select('selectedSeats status');
 
         return res.status(200).json(bookings);
     } catch (err) {
-        console.error("Error fetching bookings for event:", err);
-        return res.status(500).json({ message: "Internal server error." });
+        console.error('Error fetching bookings for event:', err);
+        return res.status(500).json({ success: false, message: 'Internal server error.' });
     }
 };

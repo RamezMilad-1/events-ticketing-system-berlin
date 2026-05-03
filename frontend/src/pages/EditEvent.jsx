@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
+import { toast } from 'react-toastify';
+import { eventService } from '../services/api';
 import DynamicCustomFields from "../components/DynamicCustomFields";
 import { categoryOptions, getDefaultCustomFields } from "../utils/categoryFields";
 
@@ -8,6 +9,7 @@ const EditEvent = () => {
     const { eventId } = useParams();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
+    const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState(null);
     const [imagePreview, setImagePreview] = useState("");
     const [customFields, setCustomFields] = useState({});
@@ -26,9 +28,7 @@ const EditEvent = () => {
 
     const fetchEventDetails = async () => {
         try {
-            const response = await axios.get(`http://localhost:3000/api/v1/events/${eventId}`, {
-                withCredentials: true
-            });
+            const response = await eventService.getEventById(eventId);
             const event = response.data;
 
             // Prepare custom fields, including ticket types if they exist
@@ -98,44 +98,46 @@ const EditEvent = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setSubmitting(true);
+        setError(null);
         try {
             const eventData = {
                 ...formData,
-                custom_fields: customFields
+                custom_fields: { ...customFields },
             };
 
-            // Extract ticketTypes from custom_fields if present
-            if (customFields.ticket_types && Array.isArray(customFields.ticket_types)) {
-                eventData.ticketTypes = customFields.ticket_types.map(ticket => ({
+            if (Array.isArray(customFields.ticket_types) && customFields.ticket_types.length > 0) {
+                eventData.ticketTypes = customFields.ticket_types.map((ticket) => ({
                     type: ticket.type,
-                    price: Number(ticket.price),
-                    quantity: Number(ticket.quantity),
-                    remaining: Number(ticket.quantity) // Reset remaining to full quantity on edit
+                    price: Number(ticket.price) || 0,
+                    quantity: Number(ticket.quantity) || 0,
+                    // The backend preserves sold counts; passing remaining=quantity here is fine.
+                    remaining: Number(ticket.quantity) || 0,
                 }));
-                // Remove ticket_types from custom_fields since it's now a top-level field
                 const { ticket_types, ...otherFields } = customFields;
                 eventData.custom_fields = otherFields;
             }
 
-            // Convert number fields in custom_fields to numbers
             if (eventData.custom_fields) {
-                const categoryFields = (await import('../utils/categoryFields')).categoryFields;
+                const { categoryFields } = await import('../utils/categoryFields');
                 const fields = categoryFields[formData.category] || {};
-                Object.keys(eventData.custom_fields).forEach(key => {
+                Object.keys(eventData.custom_fields).forEach((key) => {
                     if (fields[key] && fields[key].type === 'number') {
                         eventData.custom_fields[key] = Number(eventData.custom_fields[key]);
                     }
                 });
             }
 
-            await axios.put(`http://localhost:3000/api/v1/events/${eventId}`, eventData, {
-                withCredentials: true
-            });
-
+            await eventService.updateEvent(eventId, eventData);
+            toast.success('Event updated. It will be re-reviewed by an admin.');
             navigate('/my-events');
         } catch (err) {
             console.error('Update error:', err);
-            setError(err.response?.data?.message || "Failed to update event");
+            const msg = err.response?.data?.message || 'Failed to update event';
+            setError(msg);
+            toast.error(msg);
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -262,9 +264,10 @@ const EditEvent = () => {
                         </button>
                         <button
                             type="submit"
-                            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+                            disabled={submitting}
+                            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
                         >
-                            Update Event
+                            {submitting ? 'Updating...' : 'Update Event'}
                         </button>
                     </div>
                 </div>

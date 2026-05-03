@@ -1,86 +1,76 @@
-import { createContext, useContext, useEffect, useState } from "react";
-import axios from "axios";
+import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { authService, userService } from '../services/api';
+import Loader from '../components/ui/Loader';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState(null);
+    const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
 
-  // Fetch current user on app load
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const res = await axios.get("http://localhost:3000/api/v1/users/profile", {
-          withCredentials: true,
-        });
-        if (res.data.success && res.data.user) {
-          setUser(res.data.user);
-          // The token is handled by cookies, so we'll set a flag to indicate authentication
-          setToken('authenticated');
-        } else {
-          setUser(null);
-          setToken(null);
+    const fetchUser = useCallback(async () => {
+        try {
+            const res = await userService.getProfile();
+            if (res.data?.success && res.data.user) {
+                setUser(res.data.user);
+                return res.data.user;
+            }
+            setUser(null);
+            return null;
+        } catch {
+            setUser(null);
+            return null;
         }
-      } catch(e) {
-        console.log('Auth check error:', e);
-        setUser(null);
-        setToken(null);
-      } finally {
-        setLoading(false);
-      }
+    }, []);
+
+    useEffect(() => {
+        let mounted = true;
+        (async () => {
+            await fetchUser();
+            if (mounted) setLoading(false);
+        })();
+        return () => {
+            mounted = false;
+        };
+    }, [fetchUser]);
+
+    const login = async (credentials) => {
+        const response = await authService.login(credentials);
+        if (response.data?.user) {
+            setUser(response.data.user);
+            return response.data.user;
+        }
+        throw new Error(response.data?.message || 'Login failed');
     };
-    fetchUser();
-  }, []);
 
-  // Login function
-  const login = async (credentials) => {
-    try {
-      const response = await axios.post("http://localhost:3000/api/v1/login", credentials, {
-        withCredentials: true,
-      });
-      
-      if (response.data && response.data.user) {
-        setUser(response.data.user);
-        setToken('authenticated');
-        return true;
-      }
-      throw new Error(response.data?.message || 'Login failed');
-    } catch (err) {
-      console.error('Login error:', err);
-      setToken(null);
-      throw err;
-    }
-  };
+    const register = async (data) => {
+        const response = await authService.register(data);
+        return response.data;
+    };
 
-  // Logout function
-  const logout = async () => {
-    try {
-      await axios.post(
-        "http://localhost:3000/api/v1/logout",
-        {},
-        {
-          withCredentials: true,
+    const logout = async () => {
+        try {
+            await authService.logout();
+        } catch (err) {
+            console.error('Logout error:', err);
+        } finally {
+            setUser(null);
         }
-      );
-    } catch (err) {
-      console.error('Logout error:', err);
-    } finally {
-      setUser(null);
-      setToken(null);
+    };
+
+    const refreshUser = async () => fetchUser();
+
+    if (loading) {
+        return <Loader fullScreen label="Loading EventHub..." />;
     }
-  };
 
-  if (loading) return <div>Loading...</div>;
-
-  return (
-    <AuthContext.Provider value={{ user, token, login, logout, loading }}>
-      {children}
-    </AuthContext.Provider>
-  );
+    return (
+        <AuthContext.Provider value={{ user, login, register, logout, refreshUser, loading }}>
+            {children}
+        </AuthContext.Provider>
+    );
 };
 
 export function useAuth() {
-  return useContext(AuthContext);
+    return useContext(AuthContext);
 }

@@ -1,45 +1,36 @@
-const jwt = require("jsonwebtoken");
-const secretKey = "123456"
+const jwt = require('jsonwebtoken');
 
-// Required authentication middleware - fails if no token
+const JWT_SECRET = () => process.env.JWT_SECRET || 'unsafe-dev-fallback';
+
 function authenticationMiddleware(req, res, next) {
-    const cookie = req.cookies;
-    console.log('inside auth middleware')
-    
-    if (!cookie) {
-        return res.status(401).json({ message: "No Cookie provided" });
-    }
-    const token = cookie.token;
+    const token = req.cookies?.token;
+
     if (!token) {
-        return res.status(405).json({ message: "No token provided" });
+        return res.status(401).json({ success: false, message: 'Authentication required' });
     }
 
-    jwt.verify(token, secretKey, (error, decoded) => {
+    jwt.verify(token, JWT_SECRET(), (error, decoded) => {
         if (error) {
-            return res.status(403).json({ message: "Invalid token" });
+            return res.status(401).json({ success: false, message: 'Invalid or expired token' });
         }
-
         req.user = decoded.user;
         next();
     });
 }
 
-// Optional authentication middleware - continues even without token
+// Permissive variant: attaches req.user when a valid token is present, otherwise continues anonymously.
 function optionalAuthenticationMiddleware(req, res, next) {
-    const cookie = req.cookies;
-    const token = cookie?.token;
-
+    const token = req.cookies?.token;
     if (!token) {
         req.user = null;
         return next();
     }
 
-    jwt.verify(token, secretKey, (error, decoded) => {
+    jwt.verify(token, JWT_SECRET(), (error, decoded) => {
         if (error) {
             req.user = null;
             return next();
         }
-
         req.user = decoded.user;
         next();
     });

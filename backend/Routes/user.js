@@ -1,38 +1,29 @@
-const express = require("express");
-const userController = require("../Controller/userController");
-const authorizationMiddleware = require('../Middleware/authorizationMiddleware');
+const express = require('express');
 const router = express.Router();
 
-//public:
-//Update user password
-router.put("/changePassword", authorizationMiddleware(['System Admin', 'Organizer', 'Standard User']), userController.changePassword);
+const userController = require('../Controller/userController');
+const authorize = require('../Middleware/authorizationMiddleware');
 
-//Authenticated Users:
-//Get current user's profile 
-router.get("/profile", authorizationMiddleware(['System Admin', 'Organizer', 'Standard User']), userController.getUserProfile);
-//Update current user's profile 
-router.put("/profile", authorizationMiddleware(['System Admin', 'Organizer', 'Standard User']), userController.updateUserProfile);
-//Delete own profile
-router.delete("/profile", authorizationMiddleware(['System Admin', 'Organizer', 'Standard User']), userController.deleteOwnProfile);
+const ALL_ROLES = ['Standard User', 'Organizer', 'System Admin'];
 
-//Standard User:
-//Get current user's bookings 
-router.get("/bookings", authorizationMiddleware(['Standard User']), userController.getCurrentBookings);
+// --- Authenticated user (any role) ---
+router.put('/changePassword', authorize(ALL_ROLES), userController.changePassword);
 
-//Event Organizer:
-//Get current user's events 
-router.get("/events", authorizationMiddleware(['Organizer']), userController.getMyEvents);
-//Get the analytics of the current user's events 
-router.get("/events/analytics", authorizationMiddleware(['Organizer']), userController.getMyEventAnalytics);
+router.get('/profile', authorize(ALL_ROLES), userController.getUserProfile);
+router.put('/profile', authorize(ALL_ROLES), userController.updateUserProfile);
+router.delete('/profile', authorize(ALL_ROLES), userController.deleteOwnProfile);
 
-//Admin:
-//Get all users
-router.get("/", authorizationMiddleware(['System Admin']), userController.getAllUsers);
-//Get details of a single user 
-router.get("/:id", authorizationMiddleware(['System Admin']), userController.getSingleUser);
-//Update user's role 
-router.put("/:id", authorizationMiddleware(['System Admin']), userController.updateUserRole);
-//Delete a user 
-router.delete("/:id", authorizationMiddleware(['System Admin']), userController.deleteUser);
+// --- Standard user ---
+router.get('/bookings', authorize(['Standard User']), userController.getCurrentBookings);
 
-module.exports = router; // ! Don't forget to export the router
+// --- Organizer ---
+router.get('/events', authorize(['Organizer']), userController.getMyEvents);
+router.get('/events/analytics', authorize(['Organizer']), userController.getMyEventAnalytics);
+
+// --- Admin ---
+router.get('/', authorize(['System Admin']), userController.getAllUsers);
+router.get('/:id', authorize(['System Admin']), userController.getSingleUser);
+router.put('/:id', authorize(['System Admin']), userController.updateUserRole);
+router.delete('/:id', authorize(['System Admin']), userController.deleteUser);
+
+module.exports = router;

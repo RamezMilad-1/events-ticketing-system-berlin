@@ -1,156 +1,255 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../auth/AuthContext';
+import { useEffect, useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import { CheckCircle, XCircle, Trash2, MapPin, Calendar, User } from 'lucide-react';
 import { eventService } from '../services/api';
+import Loader from '../components/ui/Loader';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
+import EmptyState from '../components/ui/EmptyState';
 
-const AdminEventsPage = () => {
-  const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [successMessage, setSuccessMessage] = useState(null);
-  const navigate = useNavigate();
-  const { user } = useAuth();
+const STATUS_TABS = [
+    { id: 'all', label: 'All' },
+    { id: 'pending', label: 'Pending' },
+    { id: 'approved', label: 'Approved' },
+    { id: 'declined', label: 'Declined' },
+];
 
-  useEffect(() => {
-    // Redirect if not admin
-    if (user && user.role !== 'System Admin') {
-      navigate('/');
-      return;
-    }
-
-    fetchEvents();
-  }, [user, navigate]);
-
-  const fetchEvents = async () => {
-    try {
-      const response = await eventService.getAllEventsAdmin();
-      setEvents(response.data);
-      setError(null);
-    } catch (err) {
-      console.error('Error fetching events:', err);
-      setError(err.response?.data?.message || 'Failed to fetch events');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleApprove = async (eventId) => {
-    try {
-      await eventService.approveEvent(eventId);
-      setEvents(events.map(event => 
-        event._id === eventId ? { ...event, status: 'approved' } : event
-      ));
-      setSuccessMessage('Event approved successfully');
-      setTimeout(() => setSuccessMessage(null), 3000);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to approve event');
-    }
-  };
-
-  const handleDecline = async (eventId) => {
-    if (!window.confirm('Are you sure you want to decline this event?')) return;
-    
-    try {
-      await eventService.declineEvent(eventId);
-      setEvents(events.map(event => 
-        event._id === eventId ? { ...event, status: 'declined' } : event
-      ));
-      setSuccessMessage('Event declined successfully');
-      setTimeout(() => setSuccessMessage(null), 3000);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to decline event');
-    }
-  };
-
-  const handleDelete = async (eventId) => {
-    if (!window.confirm('Are you sure you want to delete this event?')) return;
-    
-    try {
-      await eventService.deleteEvent(eventId);
-      setEvents(events.filter(event => event._id !== eventId));
-      setSuccessMessage('Event deleted successfully');
-      setTimeout(() => setSuccessMessage(null), 3000);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to delete event');
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">Manage Events</h1>
-      
-      {successMessage && (
-        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
-          {successMessage}
-        </div>
-      )}
-      
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          {error}
-        </div>
-      )}
-
-      <div className="grid gap-6">
-        {events.map(event => (
-          <div key={event._id} className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex justify-between items-start">
-              <div>
-                <h2 className="text-xl font-semibold mb-2">{event.title}</h2>
-                <p className="text-gray-600 mb-2">{event.description}</p>
-                <div className="flex gap-4 text-sm text-gray-500">
-                  <span>Date: {new Date(event.date).toLocaleDateString()}</span>
-                  <span>Time: {new Date(event.date).toLocaleTimeString()}</span>
-                  <span>Venue: {event.venue}</span>
-                  <span>Price: ${event.ticketPrice}</span>
-                  <span>Available Tickets: {event.availableTickets}</span>
-                  <span className={`font-semibold ${
-                    event.status === 'approved' ? 'text-green-600' :
-                    event.status === 'declined' ? 'text-red-600' :
-                    'text-yellow-600'
-                  }`}>
-                    Status: {event.status}
-                  </span>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                {event.status === 'pending' && (
-                  <>
-                    <button
-                      onClick={() => handleApprove(event._id)}
-                      className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-                    >
-                      Approve
-                    </button>
-                    <button
-                      onClick={() => handleDecline(event._id)}
-                      className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-                    >
-                      Decline
-                    </button>
-                  </>
-                )}
-                <button
-                  onClick={() => handleDelete(event._id)}
-                  className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+const STATUS_BADGE = {
+    approved: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    pending: 'bg-amber-50 text-amber-700 border-amber-200',
+    declined: 'bg-rose-50 text-rose-700 border-rose-200',
 };
 
-export default AdminEventsPage; 
+const computeAvailableTickets = (event) => {
+    if (event.ticketTypes?.length > 0) {
+        return event.ticketTypes.reduce((sum, t) => sum + (t.remaining || 0), 0);
+    }
+    return event.remainingTickets || 0;
+};
+
+const computeTotalTickets = (event) => {
+    if (event.ticketTypes?.length > 0) {
+        return event.ticketTypes.reduce((sum, t) => sum + (t.quantity || 0), 0);
+    }
+    return event.totalTickets || 0;
+};
+
+const AdminEventsPage = () => {
+    const [events, setEvents] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [filter, setFilter] = useState('pending');
+    const [actionLoading, setActionLoading] = useState(null);
+    const [deleteId, setDeleteId] = useState(null);
+
+    const fetchEvents = async () => {
+        try {
+            const response = await eventService.getAllEventsAdmin();
+            setEvents(Array.isArray(response.data) ? response.data : []);
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Failed to fetch events');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchEvents();
+    }, []);
+
+    const filteredEvents = useMemo(
+        () => (filter === 'all' ? events : events.filter((e) => e.status === filter)),
+        [events, filter]
+    );
+
+    const handleStatusChange = async (eventId, status) => {
+        setActionLoading(eventId);
+        try {
+            await eventService.updateEventStatus(eventId, status);
+            setEvents((prev) => prev.map((e) => (e._id === eventId ? { ...e, status } : e)));
+            toast.success(`Event ${status}`);
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Failed to update event status');
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    const handleDelete = async () => {
+        if (!deleteId) return;
+        setActionLoading(deleteId);
+        try {
+            await eventService.deleteEvent(deleteId);
+            setEvents((prev) => prev.filter((e) => e._id !== deleteId));
+            toast.success('Event deleted');
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Failed to delete event');
+        } finally {
+            setActionLoading(null);
+            setDeleteId(null);
+        }
+    };
+
+    const counts = useMemo(
+        () => ({
+            all: events.length,
+            pending: events.filter((e) => e.status === 'pending').length,
+            approved: events.filter((e) => e.status === 'approved').length,
+            declined: events.filter((e) => e.status === 'declined').length,
+        }),
+        [events]
+    );
+
+    if (loading) return <Loader fullScreen label="Loading events..." />;
+
+    return (
+        <div className="container mx-auto max-w-7xl px-4 py-10">
+            <header className="mb-8">
+                <h1 className="text-3xl font-bold text-slate-900">Manage Events</h1>
+                <p className="text-slate-600 mt-1">Approve, decline, or remove events submitted by organizers.</p>
+            </header>
+
+            {/* Tabs */}
+            <div className="mb-6 inline-flex flex-wrap gap-2 rounded-xl border border-slate-200 bg-white p-1">
+                {STATUS_TABS.map((tab) => (
+                    <button
+                        key={tab.id}
+                        onClick={() => setFilter(tab.id)}
+                        className={`px-4 py-2 rounded-lg text-sm font-semibold transition flex items-center gap-2 ${
+                            filter === tab.id
+                                ? 'bg-indigo-600 text-white shadow'
+                                : 'text-slate-600 hover:bg-slate-100'
+                        }`}
+                    >
+                        {tab.label}
+                        <span
+                            className={`text-xs rounded-full px-2 py-0.5 ${
+                                filter === tab.id ? 'bg-white/30' : 'bg-slate-200'
+                            }`}
+                        >
+                            {counts[tab.id]}
+                        </span>
+                    </button>
+                ))}
+            </div>
+
+            {filteredEvents.length === 0 ? (
+                <EmptyState icon="🗓️" title="No events" description={`No events match the "${filter}" filter.`} />
+            ) : (
+                <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-slate-200">
+                            <thead className="bg-slate-50">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">Event</th>
+                                    <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">Organizer</th>
+                                    <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">Date & Tickets</th>
+                                    <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">Status</th>
+                                    <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-200">
+                                {filteredEvents.map((event) => {
+                                    const total = computeTotalTickets(event);
+                                    const available = computeAvailableTickets(event);
+                                    return (
+                                        <tr key={event._id} className="hover:bg-slate-50/60">
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-start gap-3">
+                                                    <img
+                                                        src={event.image || 'https://placehold.co/80x80?text=Event'}
+                                                        alt=""
+                                                        className="h-16 w-16 rounded-lg object-cover bg-slate-100"
+                                                    />
+                                                    <div className="min-w-0">
+                                                        <Link
+                                                            to={`/events/${event._id}`}
+                                                            className="font-semibold text-slate-900 hover:text-indigo-600 line-clamp-1"
+                                                        >
+                                                            {event.title}
+                                                        </Link>
+                                                        <p className="text-sm text-slate-500 line-clamp-2">{event.description}</p>
+                                                        <p className="mt-1 text-xs text-slate-400 inline-flex items-center gap-1">
+                                                            <MapPin size={12} /> {event.location}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="text-sm font-medium text-slate-900 inline-flex items-center gap-1">
+                                                    <User size={14} /> {event.organizer?.name || 'Unknown'}
+                                                </div>
+                                                <div className="text-xs text-slate-500">{event.organizer?.email || ''}</div>
+                                            </td>
+                                            <td className="px-6 py-4 text-sm">
+                                                <div className="inline-flex items-center gap-1 text-slate-700">
+                                                    <Calendar size={14} /> {new Date(event.date).toLocaleDateString()}
+                                                </div>
+                                                <div className="text-slate-500 text-xs mt-1">
+                                                    Available: {available} / {total}
+                                                </div>
+                                                {event.ticketPrice != null && (
+                                                    <div className="text-slate-500 text-xs">From ${event.ticketPrice}</div>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span
+                                                    className={`inline-block px-2.5 py-1 rounded-full text-xs font-bold uppercase border ${
+                                                        STATUS_BADGE[event.status] || ''
+                                                    }`}
+                                                >
+                                                    {event.status}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex flex-wrap gap-2">
+                                                    {event.status !== 'approved' && (
+                                                        <button
+                                                            onClick={() => handleStatusChange(event._id, 'approved')}
+                                                            disabled={actionLoading === event._id}
+                                                            className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                                                        >
+                                                            <CheckCircle size={14} /> Approve
+                                                        </button>
+                                                    )}
+                                                    {event.status !== 'declined' && (
+                                                        <button
+                                                            onClick={() => handleStatusChange(event._id, 'declined')}
+                                                            disabled={actionLoading === event._id}
+                                                            className="inline-flex items-center gap-1 rounded-md bg-amber-500 px-3 py-1 text-xs font-semibold text-white hover:bg-amber-600 disabled:opacity-50"
+                                                        >
+                                                            <XCircle size={14} /> Decline
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        onClick={() => setDeleteId(event._id)}
+                                                        disabled={actionLoading === event._id}
+                                                        className="inline-flex items-center gap-1 rounded-md bg-rose-600 px-3 py-1 text-xs font-semibold text-white hover:bg-rose-700 disabled:opacity-50"
+                                                    >
+                                                        <Trash2 size={14} /> Delete
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+
+            <ConfirmDialog
+                open={Boolean(deleteId)}
+                title="Delete this event?"
+                description="This permanently removes the event and cannot be undone. Any related bookings will be orphaned."
+                confirmLabel="Delete event"
+                variant="danger"
+                loading={actionLoading === deleteId}
+                onConfirm={handleDelete}
+                onCancel={() => setDeleteId(null)}
+            />
+        </div>
+    );
+};
+
+export default AdminEventsPage;

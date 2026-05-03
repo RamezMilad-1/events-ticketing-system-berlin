@@ -1,29 +1,28 @@
 const express = require('express');
 const router = express.Router();
+
 const eventController = require('../Controller/eventcontroller');
-const authorizationMiddleware = require('../Middleware/authorizationMiddleware');
+const authorize = require('../Middleware/authorizationMiddleware');
 
-// Admin specific routes must come before generic /:id routes
-router.get('/all', authorizationMiddleware('System Admin'), eventController.getAllEventsAdmin);
+// --- Public ---
+// IMPORTANT: more specific paths must come before /:id
+router.get('/all', authorize(['System Admin']), eventController.getAllEventsAdmin);
 
-// Organizer specific routes
-router.get('/users/my-events', authorizationMiddleware('Organizer'), eventController.getMyEvents);
-router.get('/users/analytics', authorizationMiddleware('Organizer'), eventController.getMyEventAnalytics);
-
-// Generic routes
-router.get('/', eventController.getAllEvents);
+router.get('/', eventController.getAllEvents); // approved events only
 router.get('/:id', eventController.getEventById);
 
-// Organizer
-router.post('/', authorizationMiddleware('Organizer'), eventController.createEvent);
-router.put('/:id', authorizationMiddleware(['Organizer', 'System Admin']), eventController.updateEvent);
-router.delete('/:id', authorizationMiddleware(['Organizer', 'System Admin']), eventController.deleteEvent);
-router.get('/users/my-events', authorizationMiddleware('Organizer'), eventController.getMyEvents);
-router.get('/users/analytics', authorizationMiddleware('Organizer'), eventController.getMyEventAnalytics);
+// --- Organizer ---
+router.post('/', authorize(['Organizer']), eventController.createEvent);
 
-// Admin
-router.get('/all', authorizationMiddleware('System Admin'), eventController.getAllEvents);
-router.put('/:id/approve', authorizationMiddleware('System Admin'), eventController.updateEventStatus);
-router.put('/:id/decline', authorizationMiddleware('System Admin'), eventController.updateEventStatus);
+// Updates: organizers (own events only) or admin
+router.put('/:id', authorize(['Organizer', 'System Admin']), eventController.updateEvent);
+router.delete('/:id', authorize(['Organizer', 'System Admin']), eventController.deleteEvent);
+
+// --- Admin: status management ---
+// Preferred: PUT /:id/status with { status: 'approved' | 'declined' | 'pending' }
+router.put('/:id/status', authorize(['System Admin']), eventController.updateEventStatus);
+// Backwards-compatible aliases (frontend already uses these)
+router.put('/:id/approve', authorize(['System Admin']), eventController.updateEventStatus);
+router.put('/:id/decline', authorize(['System Admin']), eventController.updateEventStatus);
 
 module.exports = router;

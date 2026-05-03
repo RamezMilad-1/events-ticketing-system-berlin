@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import axios from 'axios';
+import { userService } from '../services/api';
 
 const ChangePasswordForm = ({ onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
@@ -53,14 +53,9 @@ const ChangePasswordForm = ({ onClose, onSuccess }) => {
     setSubmitError('');
 
     try {
-      const response = await axios({
-        method: 'put',
-        url: 'http://localhost:3000/api/v1/users/changePassword',
-        data: {
-          oldPassword: formData.oldPassword,
-          newPassword: formData.newPassword
-        },
-        withCredentials: true,
+      const response = await userService.changePassword({
+        oldPassword: formData.oldPassword,
+        newPassword: formData.newPassword,
       });
 
       if (response.status === 200) {
