@@ -61,6 +61,10 @@ const userController = {
                 }
             );
 
+            // Return user without password
+            const userWithoutPassword = user.toObject();
+            delete userWithoutPassword.password;
+
             return res
                 .cookie("token", token, {
                     httpOnly: true,
@@ -70,7 +74,7 @@ const userController = {
                     expires: undefined // Cookie will expire when browser closes
                 })
                 .status(200)
-                .json({ message: "login successfully", user });
+                .json({ message: "login successfully", success: true, user: userWithoutPassword });
         } catch (error) {
             console.error("Error logging in:", error);
             res.status(500).json({ message: "Server error" });
@@ -370,6 +374,22 @@ const userController = {
         } catch (error) {
             console.error("Error getting event analytics:", error);
             res.status(500).json({ message: "Server error." });
+        }
+    },
+
+    //Logout
+    logout: async (req, res) => {
+        try {
+            res.clearCookie("token", {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax',
+                path: '/'
+            });
+            res.status(200).json({ message: "Logout successfully", success: true });
+        } catch (error) {
+            console.error("Error logging out:", error);
+            res.status(500).json({ message: "Server error" });
         }
     },
 

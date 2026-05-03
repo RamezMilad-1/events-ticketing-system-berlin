@@ -7,10 +7,16 @@ const Navbar = () => {
 
     const handleLogout = async () => {
         await logout();
-        navigate('/login');
+        navigate('/');
     };
 
     const getNavLinks = () => {
+        if (!user) {
+            return [
+                { to: '/', label: 'Home' },
+            ];
+        }
+
         const commonLinks = [
             { to: '/', label: 'Home' },
             { to: '/profile', label: 'Profile' },
@@ -22,6 +28,7 @@ const Navbar = () => {
             ],
             'Organizer': [
                 { to: '/my-events', label: 'My Events' },
+                { to: '/create-event', label: 'Create Event' },
             ],
             'System Admin': [
                 { to: '/admin/users', label: 'Manage Users' },
@@ -33,32 +40,64 @@ const Navbar = () => {
     };
 
     return (
-        <nav className="bg-white shadow-lg">
+        <nav className="sticky top-0 z-50 bg-white shadow-lg backdrop-blur-lg bg-white/95 border-b border-slate-200">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex justify-between h-16">
-                    <div className="flex">
-                        <div className="flex-shrink-0 flex items-center">
-                            <span className="text-xl font-bold text-blue-600">EventHub</span>
+                <div className="flex justify-between items-center h-20">
+                    {/* Logo */}
+                    <Link 
+                        to="/" 
+                        className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+                    >
+                        <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-blue-600 rounded-lg flex items-center justify-center">
+                            <span className="text-white font-bold text-lg">E</span>
                         </div>
-                        <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-                            {getNavLinks().map((link) => (
-                                <Link
-                                    key={link.to}
-                                    to={link.to}
-                                    className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-blue-600"
-                                >
-                                    {link.label}
-                                </Link>
-                            ))}
-                        </div>
+                        <span className="text-xl font-bold gradient-text hidden sm:inline">EventHub</span>
+                    </Link>
+
+                    {/* Navigation Links */}
+                    <div className="hidden md:flex items-center gap-8">
+                        {getNavLinks().map((link) => (
+                            <Link
+                                key={link.to}
+                                to={link.to}
+                                className="text-slate-600 hover:text-indigo-600 font-medium transition-colors duration-200 relative group"
+                            >
+                                {link.label}
+                                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-indigo-600 to-blue-600 group-hover:w-full transition-all duration-300"></span>
+                            </Link>
+                        ))}
                     </div>
-                    <div className="flex items-center">
-                        <button
-                            onClick={handleLogout}
-                            className="ml-4 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                        >
-                            Logout
-                        </button>
+
+                    {/* Auth Buttons */}
+                    <div className="flex items-center gap-3">
+                        {!user ? (
+                            <>
+                                <Link
+                                    to="/login"
+                                    className="px-4 py-2 text-slate-700 font-semibold hover:text-indigo-600 transition-colors duration-200"
+                                >
+                                    Sign In
+                                </Link>
+                                <Link
+                                    to="/register"
+                                    className="btn btn-primary btn-sm"
+                                >
+                                    Register
+                                </Link>
+                            </>
+                        ) : (
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium text-slate-600 hidden sm:inline">
+                                    {user.name}
+                                </span>
+                                <button
+                                    onClick={handleLogout}
+                                    className="btn btn-primary btn-sm"
+                                >
+                                    Logout
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

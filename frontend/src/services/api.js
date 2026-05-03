@@ -41,4 +41,11 @@ export const eventService = {
   declineEvent: (id) => api.put(`/events/${id}/decline`),
 };
 
+export const bookingService = {
+  createBooking: (data) => api.post("/bookings", data),
+  getMyBookings: () => api.get("/users/bookings"),
+  cancelBooking: (bookingId) => api.delete(`/bookings/${bookingId}`),
+  getBookingsForEvent: (eventId) => api.get(`/bookings/event/${eventId}`),
+};
+
 export default api;

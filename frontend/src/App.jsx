@@ -29,27 +29,56 @@ function App() {
           <Route path="/register" element={<RegisterForm />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
 
-          {/* Protected Routes with Layout and Nested Children */}
-          <Route path="/"
-            element={
-              <ProtectedRoute allowedRoles={["Standard User", "Organizer", "System Admin"]}>
-                <Layout />
-              </ProtectedRoute>
-            }
-          >
-            {/* Index Route */}
+          {/* Public Home Route with Layout */}
+          <Route path="/" element={<Layout />}>
+            {/* Index Route - Public EventList */}
             <Route index element={<EventList />} />
-            {/* Dashboard Route */}
-            <Route path="dashboard" element={<Dashboard />} />
+            
+            {/* Protected Routes */}
+            <Route
+              path="dashboard"
+              element={
+                <ProtectedRoute allowedRoles={["Standard User", "Organizer", "System Admin"]}>
+                  <Dashboard />
+                </ProtectedRoute>
+              }
+            />
             {/* Profile Route */}
-            <Route path="profile" element={<Profile />} />
-            {/* Event Details Route */}
+            <Route
+              path="profile"
+              element={
+                <ProtectedRoute allowedRoles={["Standard User", "Organizer", "System Admin"]}>
+                  <Profile />
+                </ProtectedRoute>
+              }
+            />
+            {/* Event Details and Booking Routes - Public but require auth for booking */}
             <Route path="events/:eventId" element={<EventDetails />} />
-            {/* Booking Routes */}
-            <Route path="booking/:eventId" element={<Booking />} />
-            <Route path="booking-success" element={<BookingSuccess />} />
+            <Route
+              path="booking/:eventId"
+              element={
+                <ProtectedRoute allowedRoles={["Standard User"]}>
+                  <Booking />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="booking-success"
+              element={
+                <ProtectedRoute allowedRoles={["Standard User"]}>
+                  <BookingSuccess />
+                </ProtectedRoute>
+              }
+            />
             {/* My Bookings Route */}
-            <Route path="my-bookings" element={<MyBookings />} />
+            <Route
+              path="my-bookings"
+              element={
+                <ProtectedRoute allowedRoles={["Standard User"]}>
+                  <MyBookings />
+                </ProtectedRoute>
+              }
+            />
 
             {/* My Events Route - Only for Organizers */}
             <Route
@@ -115,7 +144,7 @@ function App() {
           {/* Wildcard Route */}
           <Route
             path="*"
-            element={<Navigate to={"/login"} replace />}
+            element={<Navigate to={"/"} replace />}
           />
         </Routes>
       </AuthProvider>
