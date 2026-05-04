@@ -9,6 +9,7 @@ const authRouter = require('./Routes/auth');
 const userRouter = require('./Routes/user');
 const eventRouter = require('./Routes/eventroute');
 const bookingRouter = require('./Routes/bookingroute');
+const outletRouter = require('./Routes/outletroute');
 
 const authenticationMiddleware = require('./Middleware/authenticationMiddleware');
 const { optional: optionalAuthenticationMiddleware } = require('./Middleware/authenticationMiddleware');
@@ -51,6 +52,9 @@ app.use('/api/v1/events', optionalAuthenticationMiddleware, eventRouter);
 
 // Bookings: must be authenticated
 app.use('/api/v1/bookings', authenticationMiddleware, bookingRouter);
+
+// Outlets (box-office locations): public read, admin write
+app.use('/api/v1/outlets', optionalAuthenticationMiddleware, outletRouter);
 
 // --- 404 fallback for API ---
 app.use((req, res, next) => {

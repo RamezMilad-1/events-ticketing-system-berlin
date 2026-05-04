@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { Pencil, KeyRound, Trash2 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { userService } from '../services/api';
 import DefaultAvatar from '../components/DefaultAvatar';
@@ -10,7 +11,7 @@ import Loader from '../components/ui/Loader';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 
 const Profile = () => {
-    const { user, logout, refreshUser } = useAuth();
+    const { logout, refreshUser } = useAuth();
     const navigate = useNavigate();
 
     const [userDetails, setUserDetails] = useState(null);
@@ -20,23 +21,21 @@ const Profile = () => {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [deleteLoading, setDeleteLoading] = useState(false);
 
-    const fetchUserDetails = async () => {
-        try {
-            const response = await userService.getProfile();
-            if (response.data?.success && response.data.user) {
-                setUserDetails(response.data.user);
-            } else {
-                toast.error('Could not load profile.');
-            }
-        } catch (err) {
-            toast.error(err.response?.data?.message || 'Failed to fetch profile.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
     useEffect(() => {
-        fetchUserDetails();
+        (async () => {
+            try {
+                const response = await userService.getProfile();
+                if (response.data?.success && response.data.user) {
+                    setUserDetails(response.data.user);
+                } else {
+                    toast.error('Could not load profile.');
+                }
+            } catch (err) {
+                toast.error(err.response?.data?.message || 'Failed to fetch profile.');
+            } finally {
+                setLoading(false);
+            }
+        })();
     }, []);
 
     const handleUpdateProfile = async (updatedUser) => {
@@ -46,18 +45,13 @@ const Profile = () => {
         await refreshUser();
     };
 
-    const handlePasswordChangeSuccess = () => {
-        setIsChangingPassword(false);
-        toast.success('Password changed.');
-    };
-
     const handleDeleteProfile = async () => {
         setDeleteLoading(true);
         try {
             await userService.deleteOwnProfile();
             await logout();
             toast.success('Profile deleted. See you next time.');
-            navigate('/login');
+            navigate('/');
         } catch (err) {
             toast.error(err.response?.data?.message || 'Failed to delete profile');
         } finally {
@@ -66,10 +60,10 @@ const Profile = () => {
         }
     };
 
-    if (loading) return <Loader fullScreen label="Loading profile..." />;
+    if (loading) return <Loader fullScreen label="Loading profile…" />;
     if (!userDetails) {
         return (
-            <div className="container mx-auto max-w-2xl px-4 py-16 text-center">
+            <div className="container-page py-16 text-center">
                 <p className="text-2xl font-bold text-slate-900">Profile unavailable</p>
             </div>
         );
@@ -88,7 +82,10 @@ const Profile = () => {
             {isChangingPassword && (
                 <ChangePasswordForm
                     onClose={() => setIsChangingPassword(false)}
-                    onSuccess={handlePasswordChangeSuccess}
+                    onSuccess={() => {
+                        setIsChangingPassword(false);
+                        toast.success('Password changed.');
+                    }}
                 />
             )}
 
@@ -103,93 +100,74 @@ const Profile = () => {
                 onCancel={() => setShowDeleteConfirm(false)}
             />
 
-            <div className="min-h-screen bg-gray-50 py-12 px-4">
+            <div className="min-h-screen bg-surface-200/40 py-10 px-4">
                 <div className="max-w-5xl mx-auto">
-                    <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-                        {/* Header */}
-                        <div className="bg-gradient-to-r from-slate-800 to-slate-900 h-40 relative">
-                            <div className="absolute -bottom-12 left-10">
-                                <div className="relative h-24 w-24 rounded-full overflow-hidden ring-4 ring-white shadow-lg bg-white">
+                    <div className="bg-white rounded-2xl shadow-card border border-slate-200 overflow-hidden">
+                        {/* Banner */}
+                        <div className="bg-navy-700 h-32 relative">
+                            <div className="absolute -bottom-12 left-8">
+                                <div className="relative h-24 w-24 rounded-full overflow-hidden ring-4 ring-white shadow-card-hover bg-white">
                                     <DefaultAvatar name={userDetails.name} profilePicture={userDetails.profilePicture} />
-                                    <button
-                                        onClick={() => setIsEditing(true)}
-                                        className="absolute top-1 right-1 bg-white rounded-full p-1 shadow hover:bg-gray-100"
-                                        title="Change profile picture"
-                                    >
-                                        <svg className="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536M9 11l6.536-6.536a2 2 0 012.828 0l.172.172a2 2 0 010 2.828L12 17H9v-3l6.232-6.232z" />
-                                        </svg>
-                                    </button>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="pt-20 pb-10 px-8">
-                            <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
+                        <div className="pt-16 pb-8 px-6 sm:px-8">
+                            <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
                                 <div>
-                                    <h1 className="text-3xl font-extrabold text-gray-900 mb-2">{userDetails.name}</h1>
-                                    <p className="text-sm text-indigo-600 font-medium">{userDetails.role}</p>
+                                    <h1 className="text-2xl sm:text-3xl font-bold text-navy-600">{userDetails.name}</h1>
+                                    <p className="text-sm text-primary-600 font-semibold mt-1">{userDetails.role}</p>
                                 </div>
-                                <button
-                                    onClick={() => setIsEditing(true)}
-                                    className="btn btn-primary btn-sm"
-                                >
-                                    Edit Profile
+                                <button onClick={() => setIsEditing(true)} className="btn btn-primary btn-sm">
+                                    <Pencil size={14} /> Edit profile
                                 </button>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="bg-gray-50 rounded-xl border border-gray-200 p-6">
-                                    <h2 className="text-lg font-bold text-gray-800 mb-4">Basic Information</h2>
+                            <div className="grid sm:grid-cols-2 gap-4">
+                                <section className="bg-surface-200/60 rounded-xl border border-slate-200 p-5">
+                                    <h2 className="text-base font-bold text-navy-600 mb-4">Basic information</h2>
                                     <div className="space-y-3">
-                                        <div>
-                                            <p className="text-sm text-gray-500">Full Name</p>
-                                            <p className="text-base font-medium text-gray-900">{userDetails.name}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-sm text-gray-500">Email Address</p>
-                                            <p className="text-base font-medium text-gray-900">{userDetails.email}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-sm text-gray-500">Member since</p>
-                                            <p className="text-base font-medium text-gray-900">
-                                                {userDetails.createdAt
-                                                    ? new Date(userDetails.createdAt).toLocaleDateString()
-                                                    : '—'}
-                                            </p>
-                                        </div>
+                                        <Field label="Full name" value={userDetails.name} />
+                                        <Field label="Email address" value={userDetails.email} />
+                                        <Field
+                                            label="Member since"
+                                            value={
+                                                userDetails.createdAt
+                                                    ? new Date(userDetails.createdAt).toLocaleDateString('en-GB', {
+                                                          day: '2-digit',
+                                                          month: 'short',
+                                                          year: 'numeric',
+                                                      })
+                                                    : '—'
+                                            }
+                                        />
                                     </div>
-                                </div>
+                                </section>
 
-                                <div className="bg-gray-50 rounded-xl border border-gray-200 p-6">
-                                    <h2 className="text-lg font-bold text-gray-800 mb-4">Account & security</h2>
-                                    <div className="space-y-4">
+                                <section className="bg-surface-200/60 rounded-xl border border-slate-200 p-5">
+                                    <h2 className="text-base font-bold text-navy-600 mb-4">Account &amp; security</h2>
+                                    <div className="space-y-3">
+                                        <Field label="Role" value={userDetails.role} />
                                         <div>
-                                            <p className="text-sm text-gray-500">Role</p>
-                                            <p className="text-base font-medium text-gray-900">{userDetails.role}</p>
+                                            <p className="text-xs uppercase tracking-wider font-bold text-slate-500">Status</p>
+                                            <span className="badge badge-success mt-1">Active</span>
                                         </div>
-                                        <div>
-                                            <p className="text-sm text-gray-500">Status</p>
-                                            <span className="inline-flex items-center px-3 py-1 rounded-full bg-green-100 text-green-700 text-sm font-medium">
-                                                Active
-                                            </span>
-                                        </div>
-                                        <div className="flex flex-col gap-2">
+                                        <div className="pt-2 flex flex-col gap-2">
                                             <button
                                                 onClick={() => setIsChangingPassword(true)}
-                                                className="text-indigo-600 hover:underline text-sm font-medium text-left"
+                                                className="inline-flex items-center gap-1.5 text-primary-600 hover:text-primary-700 text-sm font-semibold transition"
                                             >
-                                                Change password
+                                                <KeyRound size={14} /> Change password
                                             </button>
                                             <button
                                                 onClick={() => setShowDeleteConfirm(true)}
-                                                className="text-rose-600 hover:text-rose-700 text-sm font-medium text-left"
+                                                className="inline-flex items-center gap-1.5 text-rose-600 hover:text-rose-700 text-sm font-semibold transition"
                                             >
-                                                Delete account
+                                                <Trash2 size={14} /> Delete account
                                             </button>
                                         </div>
                                     </div>
-                                </div>
+                                </section>
                             </div>
                         </div>
                     </div>
@@ -198,5 +176,12 @@ const Profile = () => {
         </>
     );
 };
+
+const Field = ({ label, value }) => (
+    <div>
+        <p className="text-xs uppercase tracking-wider font-bold text-slate-500">{label}</p>
+        <p className="text-sm text-slate-900 font-medium mt-0.5 break-all">{value}</p>
+    </div>
+);
 
 export default Profile;

@@ -5,18 +5,7 @@ import { ArrowLeft, MapPin, Calendar, Receipt, Ticket, Tag, X } from 'lucide-rea
 import { bookingService } from '../services/api';
 import Loader from '../components/ui/Loader';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
-
-const formatCurrency = (val) =>
-    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val || 0);
-const formatDateTime = (d) =>
-    new Date(d).toLocaleString('en-US', {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-    });
+import { formatPrice, formatDateTime } from '../utils/format';
 
 const STATUS_STYLES = {
     confirmed: 'bg-emerald-50 text-emerald-700 border-emerald-200',
@@ -59,13 +48,13 @@ const BookingDetails = () => {
         }
     };
 
-    if (loading) return <Loader fullScreen label="Loading booking..." />;
+    if (loading) return <Loader fullScreen label="Loading booking…" />;
 
     if (!booking) {
         return (
-            <div className="container mx-auto max-w-3xl px-4 py-16 text-center">
+            <div className="container-page py-16 text-center">
                 <p className="text-2xl font-bold text-slate-900 mb-2">Booking not found</p>
-                <Link to="/bookings" className="text-indigo-600 hover:underline font-semibold">
+                <Link to="/bookings" className="text-primary-600 hover:underline font-semibold">
                     ← Back to my bookings
                 </Link>
             </div>
@@ -81,98 +70,92 @@ const BookingDetails = () => {
         0;
 
     return (
-        <div className="container mx-auto max-w-4xl px-4 py-10">
-            <button
-                onClick={() => navigate(-1)}
-                className="inline-flex items-center gap-2 text-slate-600 hover:text-indigo-600 font-medium mb-6"
-            >
-                <ArrowLeft size={18} /> Back
-            </button>
+        <div className="bg-surface-200/40 min-h-screen pb-16">
+            <div className="container-page py-6">
+                <button
+                    onClick={() => navigate(-1)}
+                    className="inline-flex items-center gap-2 text-slate-600 hover:text-primary-600 text-sm font-medium mb-4"
+                >
+                    <ArrowLeft size={16} /> Back
+                </button>
 
-            <article className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl">
-                {/* Hero */}
-                <div className="relative h-56 bg-slate-900">
-                    {event.image && (
-                        <img
-                            src={event.image}
-                            alt={event.title}
-                            className="h-full w-full object-cover opacity-90"
-                        />
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent" />
-                    <div className="absolute bottom-0 left-0 p-6 text-white">
-                        <span
-                            className={`inline-block px-3 py-1 rounded-full text-xs font-bold uppercase border ${
-                                STATUS_STYLES[booking.status] || ''
-                            }`}
-                        >
-                            {booking.status}
-                        </span>
-                        <h1 className="mt-2 text-3xl font-bold">{event.title || 'Untitled event'}</h1>
-                    </div>
-                </div>
-
-                <div className="p-6 sm:p-8 space-y-6">
-                    <div className="grid gap-4 sm:grid-cols-2">
-                        <InfoRow icon={<Calendar size={18} />} label="Date & time" value={event.date ? formatDateTime(event.date) : 'TBA'} />
-                        <InfoRow icon={<MapPin size={18} />} label="Location" value={event.location || 'TBA'} />
-                        <InfoRow icon={<Ticket size={18} />} label="Tickets" value={`${ticketCount} ticket${ticketCount === 1 ? '' : 's'}`} />
-                        <InfoRow icon={<Receipt size={18} />} label="Total paid" value={formatCurrency(booking.totalPrice)} />
-                    </div>
-
-                    {booking.ticketBookings?.length > 0 && (
-                        <div className="rounded-2xl bg-slate-50 p-4">
-                            <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500 mb-3 flex items-center gap-2">
-                                <Tag size={16} /> Ticket breakdown
-                            </h3>
-                            <div className="space-y-2">
-                                {booking.ticketBookings.map((tb, i) => (
-                                    <div key={i} className="flex items-center justify-between border-b last:border-0 border-slate-200 pb-2 last:pb-0">
-                                        <span className="font-medium text-slate-800 capitalize">{tb.ticketType}</span>
-                                        <span className="text-slate-600">
-                                            {tb.quantity} × {formatCurrency(tb.price)} = <strong>{formatCurrency(tb.quantity * tb.price)}</strong>
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {booking.selectedSeats?.length > 0 && (
-                        <div className="rounded-2xl bg-indigo-50 p-4">
-                            <h3 className="text-sm font-bold uppercase tracking-wide text-indigo-700 mb-2">Seats</h3>
-                            <div className="flex flex-wrap gap-2">
-                                {booking.selectedSeats.map((seat) => (
-                                    <span
-                                        key={seat}
-                                        className="px-3 py-1 rounded-full bg-white border border-indigo-200 text-indigo-700 text-sm font-mono font-semibold"
-                                    >
-                                        {seat}
-                                    </span>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="text-xs text-slate-500">
-                        Booked on {formatDateTime(booking.createdAt)}
-                    </div>
-
-                    <div className="flex flex-wrap gap-3 pt-4 border-t border-slate-200">
-                        <Link to={`/events/${event._id}`} className="btn btn-secondary btn-sm">
-                            View event
-                        </Link>
-                        {!isCanceled && isUpcoming && (
-                            <button
-                                onClick={() => setConfirmOpen(true)}
-                                className="btn btn-sm bg-rose-600 hover:bg-rose-700 text-white"
-                            >
-                                <X size={14} /> Cancel booking
-                            </button>
+                <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
+                    <div className="relative h-56 bg-navy-700">
+                        {event.image && (
+                            <img src={event.image} alt={event.title} className="h-full w-full object-cover opacity-90" />
                         )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-navy-700 via-navy-700/40 to-transparent" />
+                        <div className="absolute bottom-0 left-0 p-6 text-white">
+                            <span
+                                className={`inline-block px-3 py-1 rounded-full text-xs font-bold uppercase border ${
+                                    STATUS_STYLES[booking.status] || ''
+                                }`}
+                            >
+                                {booking.status}
+                            </span>
+                            <h1 className="mt-2 text-2xl sm:text-3xl font-bold">{event.title || 'Untitled event'}</h1>
+                        </div>
                     </div>
-                </div>
-            </article>
+
+                    <div className="p-6 sm:p-8 space-y-5">
+                        <div className="grid gap-3 sm:grid-cols-2">
+                            <InfoRow icon={<Calendar size={16} />} label="Date & time" value={event.date ? formatDateTime(event.date) : 'TBA'} />
+                            <InfoRow icon={<MapPin size={16} />} label="Location" value={event.location || 'TBA'} />
+                            <InfoRow icon={<Ticket size={16} />} label="Tickets" value={`${ticketCount} ticket${ticketCount === 1 ? '' : 's'}`} />
+                            <InfoRow icon={<Receipt size={16} />} label="Total paid" value={formatPrice(booking.totalPrice, { withCents: true })} />
+                        </div>
+
+                        {booking.ticketBookings?.length > 0 && (
+                            <div className="rounded-xl bg-surface-200/60 p-4">
+                                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-2">
+                                    <Tag size={14} /> Ticket breakdown
+                                </h3>
+                                <div className="space-y-2">
+                                    {booking.ticketBookings.map((tb, i) => (
+                                        <div key={i} className="flex items-center justify-between border-b last:border-0 border-slate-200 pb-2 last:pb-0">
+                                            <span className="font-medium text-slate-800 capitalize">{tb.ticketType}</span>
+                                            <span className="text-slate-600 text-sm">
+                                                {tb.quantity} × {formatPrice(tb.price)} = <strong>{formatPrice(tb.quantity * tb.price)}</strong>
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {booking.selectedSeats?.length > 0 && (
+                            <div className="rounded-xl bg-primary-50 p-4">
+                                <h3 className="text-xs font-bold uppercase tracking-wider text-primary-700 mb-2">Seats</h3>
+                                <div className="flex flex-wrap gap-2">
+                                    {booking.selectedSeats.map((seat) => (
+                                        <span
+                                            key={seat}
+                                            className="px-3 py-1 rounded-full bg-white border border-primary-200 text-primary-700 text-sm font-mono font-semibold"
+                                        >
+                                            {seat}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="text-xs text-slate-500">
+                            Booked on {formatDateTime(booking.createdAt)}
+                        </div>
+
+                        <div className="flex flex-wrap gap-2 pt-4 border-t border-slate-200">
+                            <Link to={`/events/${event._id}`} className="btn btn-outline btn-sm">
+                                View event
+                            </Link>
+                            {!isCanceled && isUpcoming && (
+                                <button onClick={() => setConfirmOpen(true)} className="btn btn-danger btn-sm">
+                                    <X size={14} /> Cancel booking
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </article>
+            </div>
 
             <ConfirmDialog
                 open={confirmOpen}
@@ -190,12 +173,12 @@ const BookingDetails = () => {
 };
 
 const InfoRow = ({ icon, label, value }) => (
-    <div className="rounded-xl border border-slate-200 bg-white p-4">
-        <div className="flex items-center gap-2 text-slate-400 text-xs uppercase tracking-wide font-bold">
+    <div className="rounded-lg bg-surface-200/60 p-3">
+        <div className="flex items-center gap-1.5 text-slate-400 text-[11px] uppercase tracking-wider font-bold">
             {icon}
             {label}
         </div>
-        <p className="mt-2 text-slate-900 font-semibold">{value}</p>
+        <p className="mt-1 text-sm text-slate-900 font-semibold">{value}</p>
     </div>
 );
 

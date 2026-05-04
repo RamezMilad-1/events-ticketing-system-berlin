@@ -87,4 +87,15 @@ export const bookingService = {
     getBookingsForEvent: (eventId) => api.get(`/bookings/event/${eventId}`),
 };
 
+// ---------------------------- Outlets ---------------------------
+export const outletService = {
+    list: () => api.get('/outlets'),
+    get: (id) => api.get(`/outlets/${id}`),
+
+    // Admin
+    create: (data) => api.post('/outlets', data),
+    update: (id, data) => api.put(`/outlets/${id}`, data),
+    remove: (id) => api.delete(`/outlets/${id}`),
+};
+
 export default api;

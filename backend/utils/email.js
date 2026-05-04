@@ -15,9 +15,9 @@ function getTransporter() {
         secure: Number(process.env.EMAIL_PORT) === 465,
         auth: process.env.EMAIL_USER
             ? {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS,
-            }
+                  user: process.env.EMAIL_USER,
+                  pass: process.env.EMAIL_PASS,
+              }
             : undefined,
     });
 
@@ -26,17 +26,17 @@ function getTransporter() {
 
 async function sendOtpEmail(to, otp) {
     const transporter = getTransporter();
-    const from = process.env.EMAIL_FROM || 'EventHub <no-reply@eventhub.local>';
+    const from = process.env.EMAIL_FROM || 'EarlyHub <no-reply@earlyhub.local>';
     const ttl = process.env.OTP_TTL_MINUTES || 10;
 
-    const subject = 'Your EventHub password reset code';
+    const subject = 'Your EarlyHub password reset code';
     const text = `Your password reset code is: ${otp}\n\nThis code will expire in ${ttl} minutes. If you didn't request this, you can safely ignore this email.`;
     const html = `
-        <div style="font-family: Segoe UI, Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; background: #ffffff; color: #0f172a;">
-          <h1 style="font-size: 22px; margin: 0 0 16px;">EventHub password reset</h1>
+        <div style="font-family: Inter, Segoe UI, Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; background: #ffffff; color: #0f172a;">
+          <h1 style="font-size: 22px; margin: 0 0 16px;">EarlyHub password reset</h1>
           <p style="color: #475569; line-height: 1.6;">Use the verification code below to reset your password. The code expires in ${ttl} minutes.</p>
-          <div style="margin: 24px 0; padding: 20px; background: #eef2ff; border-radius: 12px; text-align: center;">
-            <span style="font-size: 32px; letter-spacing: 8px; font-weight: 700; color: #4338ca;">${otp}</span>
+          <div style="margin: 24px 0; padding: 20px; background: #e6f7f7; border-radius: 12px; text-align: center;">
+            <span style="font-size: 32px; letter-spacing: 8px; font-weight: 700; color: #0c8e8e;">${otp}</span>
           </div>
           <p style="color: #94a3b8; font-size: 13px;">If you didn't request this, you can safely ignore this email.</p>
         </div>

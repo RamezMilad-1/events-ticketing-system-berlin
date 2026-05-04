@@ -1,8 +1,6 @@
-# EventHub — Online Event Ticketing System
+# EarlyHub — Berlin events ticketing platform
 
-A full-stack MERN application that lets users browse, search, and book tickets for events such as concerts, theater shows, sports matches, conferences, and more. The platform supports three user roles (Standard User, Organizer, System Admin) with distinct capabilities, JWT-based authentication with OTP-based password recovery, multi-tier ticket types, theater seat selection, and a complete admin dashboard.
-
-Built for the GIU Software Engineering Spring 2025 project.
+A full-stack MERN application that lets visitors discover concerts, theatre, sports, nightlife, and conferences in Berlin and book tickets in seconds. The interface is modelled on `ticketsmarche.com` — a clean, poster-wall layout with a single coral accent on a navy + white foundation. The platform supports three user roles (Standard User, Organizer, System Admin), JWT-in-cookie authentication with OTP password recovery, multi-tier tickets, theatre seat selection, an outlets/box-office directory, and a complete admin dashboard.
 
 ---
 
@@ -10,7 +8,7 @@ Built for the GIU Software Engineering Spring 2025 project.
 
 | Layer    | Technologies                                                                 |
 |----------|------------------------------------------------------------------------------|
-| Frontend | React 18 (Vite), Tailwind CSS, React Router 6, Axios, Recharts, react-toastify, Lucide |
+| Frontend | React 18 (Vite), Tailwind CSS (navy + coral tokens, Inter), React Router 6, Axios, Recharts, react-toastify, Lucide |
 | Backend  | Node.js, Express, Mongoose, bcrypt, jsonwebtoken, cookie-parser, nodemailer  |
 | Database | MongoDB (local or Atlas)                                                     |
 
@@ -134,7 +132,7 @@ Frontend listens on **http://localhost:5173**.
 | `EMAIL_HOST` | SMTP host (leave empty to log OTPs to console in dev) | _empty_ |
 | `EMAIL_PORT` | SMTP port | `587` |
 | `EMAIL_USER` / `EMAIL_PASS` | SMTP credentials (Gmail App Password works) | _empty_ |
-| `EMAIL_FROM` | "From" header for OTP emails | `EventHub <no-reply@eventhub.local>` |
+| `EMAIL_FROM` | "From" header for OTP emails | `EarlyHub <no-reply@earlyhub.local>` |
 | `OTP_TTL_MINUTES` | OTP validity window | `10` |
 | `OTP_MAX_ATTEMPTS` | Max bad attempts before lockout | `5` |
 | `NODE_ENV` | `development` or `production` | `development` |
@@ -197,6 +195,15 @@ All routes are mounted under `/api/v1`.
 | DELETE | `/bookings/:id` | Standard User | Cancel booking (returns tickets to inventory) |
 | GET | `/bookings/event/:eventId` | Auth | Booked seats for an event (theater seat picker) |
 
+### Outlets
+| Method | Path | Access | Description |
+|---|---|---|---|
+| GET | `/outlets` | Public | List active outlets (admin sees all) |
+| GET | `/outlets/:id` | Public | Single outlet |
+| POST | `/outlets` | Admin | Create outlet |
+| PUT | `/outlets/:id` | Admin | Update outlet |
+| DELETE | `/outlets/:id` | Admin | Remove outlet |
+
 ---
 
 ## Frontend routes
@@ -219,6 +226,9 @@ All routes are mounted under `/api/v1`.
 | `/my-events/analytics` (alias `/event-analytics`) | EventAnalytics | Organizer |
 | `/admin/events` | AdminEventsPage | Admin |
 | `/admin/users` | AdminUsersPage | Admin |
+| `/outlets` | Outlets | Public |
+| `/about` (alias `/about-us`) | About | Public |
+| `/contact` (alias `/contact-us`) | Contact | Public |
 | `/unauthorized` | Unauthorized | All |
 
 Both spec routes and existing custom routes are wired up to keep older bookmarks working.

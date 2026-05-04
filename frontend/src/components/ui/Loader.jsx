@@ -7,7 +7,7 @@ const SIZES = {
 const Loader = ({ size = 'md', label, fullScreen = false, className = '' }) => {
     const ring = (
         <div
-            className={`animate-spin rounded-full border-slate-200 border-t-indigo-600 ${SIZES[size] || SIZES.md} ${className}`}
+            className={`animate-spin rounded-full border-slate-200 border-t-primary-600 ${SIZES[size] || SIZES.md} ${className}`}
             role="status"
             aria-label={label || 'Loading'}
         />

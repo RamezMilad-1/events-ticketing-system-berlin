@@ -1,140 +1,121 @@
 import { Link } from 'react-router-dom';
+import { Mail, Phone, MapPin } from 'lucide-react';
+import { LogoMark } from './Logo';
+
+// Inline SVG brand marks — lucide-react v1.x doesn't ship brand icons.
+const InstagramIcon = (props) => (
+    <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
+        <path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41-.56-.22-.96-.48-1.38-.9-.42-.42-.68-.82-.9-1.38-.16-.42-.36-1.06-.41-2.23C2.17 15.58 2.16 15.2 2.16 12s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41C8.42 2.17 8.8 2.16 12 2.16M12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63c-.79.31-1.46.72-2.13 1.39C1.34 2.69.93 3.36.62 4.14.32 4.9.13 5.78.07 7.05.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.27.25 2.15.56 2.91.31.79.72 1.46 1.39 2.13.67.67 1.34 1.08 2.13 1.39.76.3 1.64.5 2.91.56C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c1.27-.06 2.15-.25 2.91-.56.79-.31 1.46-.72 2.13-1.39.67-.67 1.08-1.34 1.39-2.13.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.27-.25-2.15-.56-2.91-.31-.79-.72-1.46-1.39-2.13C21.31 1.34 20.64.93 19.86.62 19.1.32 18.22.13 16.95.07 15.67.01 15.26 0 12 0Zm0 5.84a6.16 6.16 0 1 0 0 12.32 6.16 6.16 0 0 0 0-12.32M12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8m6.41-11.85a1.44 1.44 0 1 0 0 2.88 1.44 1.44 0 0 0 0-2.88"/>
+    </svg>
+);
+const FacebookIcon = (props) => (
+    <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
+        <path d="M22.675 0H1.325C.593 0 0 .593 0 1.325v21.351C0 23.408.593 24 1.325 24H12.82v-9.294H9.692V11.08h3.128V8.413c0-3.1 1.894-4.788 4.659-4.788 1.325 0 2.464.099 2.795.143v3.24h-1.918c-1.504 0-1.795.715-1.795 1.762v2.31h3.587l-.467 3.626h-3.12V24h6.116c.73 0 1.323-.592 1.323-1.324V1.325C24 .593 23.407 0 22.675 0z"/>
+    </svg>
+);
+const TwitterIcon = (props) => (
+    <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
+        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+    </svg>
+);
+const YoutubeIcon = (props) => (
+    <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
+        <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+    </svg>
+);
 
 const Footer = () => {
     const currentYear = new Date().getFullYear();
 
     return (
-        <footer className="bg-gradient-to-b from-slate-900 to-slate-950 text-white mt-20">
-            {/* Main Footer Content */}
-            <div className="max-w-7xl mx-auto py-16 px-4 sm:px-6 lg:px-8">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
-                    {/* Brand Section */}
-                    <div>
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-blue-500 rounded-lg flex items-center justify-center">
-                                <span className="text-white font-bold">E</span>
-                            </div>
-                            <span className="text-xl font-bold">EventHub</span>
-                        </div>
-                        <p className="text-slate-400 text-sm leading-relaxed">
-                            Your ultimate platform for discovering, creating, and managing extraordinary events.
+        <footer className="mt-16 border-t border-slate-200 bg-surface-200/60">
+            <div className="container-page py-14">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-10">
+                    {/* Brand */}
+                    <div className="col-span-2 md:col-span-1">
+                        <Link to="/" className="flex items-center gap-2">
+                            <LogoMark size={36} />
+                            <span className="text-xl font-extrabold tracking-tight leading-none text-navy-600">
+                                Early<span className="text-primary-500">Hub</span>
+                            </span>
+                        </Link>
+                        <p className="text-sm text-slate-600 mt-4 leading-relaxed max-w-xs">
+                            Discover concerts, theatre, sports and nightlife in Berlin. Book in seconds, walk in with your phone.
                         </p>
-                        {/* Social Links */}
-                        <div className="flex gap-4 mt-4">
-                            <a href="#" className="text-slate-400 hover:text-indigo-400 transition-colors">
-                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                                </svg>
-                            </a>
-                            <a href="#" className="text-slate-400 hover:text-indigo-400 transition-colors">
-                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M23.953 4.57a10 10 0 002.856-9.093c-1.603.413-3.113.558-4.556.129-1.453-.395-2.742-1.216-3.759-2.219-1.017-1.003-2.306-1.824-3.759-2.219-1.453-.429-3.113-.284-4.556.129-1.453.413-2.742 1.216-3.759 2.219-1.017 1.003-2.306 1.824-3.759 2.219-1.453.395-2.742.284-4.556-.129-1.143-.303-2.191-.789-3.112-1.452C.068 5.187.175 7.088.715 8.97c.54 1.882 1.428 3.574 2.616 5.027 1.188 1.453 2.616 2.615 4.244 3.487 1.628.872 3.456 1.453 5.385 1.749 1.929.296 3.857.296 5.786 0 1.929-.296 3.757-.877 5.385-1.749 1.628-.872 3.056-2.034 4.244-3.487 1.188-1.453 2.076-3.145 2.616-5.027.54-1.882.647-3.783.109-5.665-1.143.713-2.191 1.199-3.112 1.452z"/>
-                                </svg>
-                            </a>
-                            <a href="#" className="text-slate-400 hover:text-indigo-400 transition-colors">
-                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M19.633 7.997c.013.175.013.349.013.523 0 5.325-4.053 11.461-11.46 11.461-2.282 0-4.402-.661-6.186-1.809.324.037.636.05.973.05a8.07 8.07 0 005.001-1.72 4.021 4.021 0 01-3.756-2.773c.249.037.499.062.761.062.15 0 .3-.013.45-.038a4.014 4.014 0 01-3.224-3.937v-.05c.647.36 1.462.578 2.3.603a4.017 4.017 0 01-1.792-3.356 4.02 4.02 0 01.556-2.026 11.407 11.407 0 008.274 4.19c-.063-.3-.1-.611-.1-.923a4.026 4.026 0 014.028-4.028c1.156 0 2.202.486 2.937 1.265a7.878 7.878 0 002.556-1.01 4.022 4.022 0 01-1.771 2.237 8.034 8.034 0 002.318-.624 8.64 8.64 0 01-2.019 2.089z"/>
-                                </svg>
-                            </a>
+                        <div className="flex gap-3 mt-5">
+                            {[
+                                { Icon: InstagramIcon, href: '#', label: 'Instagram' },
+                                { Icon: FacebookIcon, href: '#', label: 'Facebook' },
+                                { Icon: TwitterIcon, href: '#', label: 'Twitter' },
+                                { Icon: YoutubeIcon, href: '#', label: 'YouTube' },
+                            ].map(({ Icon, href, label }) => (
+                                <a
+                                    key={label}
+                                    href={href}
+                                    aria-label={label}
+                                    className="w-9 h-9 rounded-full border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:border-primary-400 hover:text-primary-600 transition"
+                                >
+                                    <Icon className="w-4 h-4" />
+                                </a>
+                            ))}
                         </div>
                     </div>
 
-                    {/* Quick Links */}
+                    {/* Browse */}
                     <div>
-                        <h4 className="text-lg font-semibold mb-6 text-white">Explore</h4>
-                        <ul className="space-y-3">
-                            <li>
-                                <Link to="/" className="text-slate-400 hover:text-indigo-400 transition-colors">
-                                    All Events
-                                </Link>
-                            </li>
-                            <li>
-                                <Link to="/" className="text-slate-400 hover:text-indigo-400 transition-colors">
-                                    Categories
-                                </Link>
-                            </li>
-                            <li>
-                                <Link to="/" className="text-slate-400 hover:text-indigo-400 transition-colors">
-                                    Trending
-                                </Link>
-                            </li>
-                            <li>
-                                <Link to="/" className="text-slate-400 hover:text-indigo-400 transition-colors">
-                                    New Events
-                                </Link>
-                            </li>
+                        <h4 className="text-sm font-bold uppercase tracking-wide text-slate-900 mb-4">Browse</h4>
+                        <ul className="space-y-2.5 text-sm">
+                            <li><Link to="/" className="text-slate-600 hover:text-primary-600 transition">All events</Link></li>
+                            <li><Link to="/outlets" className="text-slate-600 hover:text-primary-600 transition">Outlets</Link></li>
+                            <li><Link to="/?category=concert" className="text-slate-600 hover:text-primary-600 transition">Concerts</Link></li>
+                            <li><Link to="/?category=theater" className="text-slate-600 hover:text-primary-600 transition">Theatre</Link></li>
+                            <li><Link to="/?category=sports" className="text-slate-600 hover:text-primary-600 transition">Sports</Link></li>
                         </ul>
                     </div>
 
-                    {/* For Organizers */}
+                    {/* Company */}
                     <div>
-                        <h4 className="text-lg font-semibold mb-6 text-white">For Organizers</h4>
-                        <ul className="space-y-3">
-                            <li>
-                                <Link to="/register" className="text-slate-400 hover:text-indigo-400 transition-colors">
-                                    Create Event
-                                </Link>
-                            </li>
-                            <li>
-                                <a href="#" className="text-slate-400 hover:text-indigo-400 transition-colors">
-                                    Pricing
-                                </a>
-                            </li>
-                            <li>
-                                <a href="#" className="text-slate-400 hover:text-indigo-400 transition-colors">
-                                    Resources
-                                </a>
-                            </li>
-                            <li>
-                                <a href="#" className="text-slate-400 hover:text-indigo-400 transition-colors">
-                                    Support
-                                </a>
-                            </li>
+                        <h4 className="text-sm font-bold uppercase tracking-wide text-slate-900 mb-4">Company</h4>
+                        <ul className="space-y-2.5 text-sm">
+                            <li><Link to="/about" className="text-slate-600 hover:text-primary-600 transition">About us</Link></li>
+                            <li><Link to="/contact" className="text-slate-600 hover:text-primary-600 transition">Contact &amp; Support</Link></li>
+                            <li><a href="#" className="text-slate-600 hover:text-primary-600 transition">Careers</a></li>
+                            <li><a href="#" className="text-slate-600 hover:text-primary-600 transition">For organisers</a></li>
                         </ul>
                     </div>
 
-                    {/* Contact & Legal */}
+                    {/* Contact */}
                     <div>
-                        <h4 className="text-lg font-semibold mb-6 text-white">Contact</h4>
-                        <ul className="space-y-3">
-                            <li>
-                                <a href="mailto:support@eventhub.com" className="text-slate-400 hover:text-indigo-400 transition-colors">
-                                    support@eventhub.com
-                                </a>
+                        <h4 className="text-sm font-bold uppercase tracking-wide text-slate-900 mb-4">Contact</h4>
+                        <ul className="space-y-2.5 text-sm">
+                            <li className="flex items-start gap-2 text-slate-600">
+                                <Mail size={15} className="mt-0.5 text-slate-400 shrink-0" />
+                                <a href="mailto:hello@earlyhub.com" className="hover:text-primary-600 transition break-all">hello@earlyhub.com</a>
                             </li>
-                            <li>
-                                <a href="tel:+15551234567" className="text-slate-400 hover:text-indigo-400 transition-colors">
-                                    +1 (555) 123-4567
-                                </a>
+                            <li className="flex items-start gap-2 text-slate-600">
+                                <Phone size={15} className="mt-0.5 text-slate-400 shrink-0" />
+                                <a href="tel:+493012345678" className="hover:text-primary-600 transition">+49 30 1234 5678</a>
                             </li>
-                            <li>
-                                <p className="text-slate-400">
-                                    123 Event Street<br/>
-                                    San Francisco, CA 94103
-                                </p>
+                            <li className="flex items-start gap-2 text-slate-600">
+                                <MapPin size={15} className="mt-0.5 text-slate-400 shrink-0" />
+                                <span>Friedrichstraße 200<br />10117 Berlin</span>
                             </li>
                         </ul>
                     </div>
                 </div>
+            </div>
 
-                {/* Bottom Divider */}
-                <div className="mt-12 pt-8 border-t border-slate-800"></div>
-
-                {/* Bottom Section */}
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <p className="text-slate-400 text-sm">
-                        &copy; {currentYear} EventHub. All rights reserved.
+            {/* Bottom strip */}
+            <div className="border-t border-slate-200 bg-white">
+                <div className="container-page py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <p className="text-xs text-slate-500">
+                        &copy; {currentYear} EarlyHub. All rights reserved.
                     </p>
-                    <div className="flex gap-6 text-sm">
-                        <a href="#" className="text-slate-400 hover:text-indigo-400 transition-colors">
-                            Privacy Policy
-                        </a>
-                        <a href="#" className="text-slate-400 hover:text-indigo-400 transition-colors">
-                            Terms of Service
-                        </a>
-                        <a href="#" className="text-slate-400 hover:text-indigo-400 transition-colors">
-                            Cookie Policy
-                        </a>
+                    <div className="flex gap-5 text-xs text-slate-500">
+                        <a href="#" className="hover:text-primary-600 transition">Privacy</a>
+                        <a href="#" className="hover:text-primary-600 transition">Terms</a>
+                        <a href="#" className="hover:text-primary-600 transition">Cookies</a>
+                        <a href="#" className="hover:text-primary-600 transition">Imprint</a>
                     </div>
                 </div>
             </div>
@@ -142,4 +123,4 @@ const Footer = () => {
     );
 };
 
-export default Footer; 
+export default Footer;

@@ -141,69 +141,71 @@ const EditEvent = () => {
         }
     };
 
-    if (loading) return <div className="text-center p-4">Loading...</div>;
-    if (error) return <div className="text-center text-red-500 p-4">{error}</div>;
+    if (loading) return <div className="container-page py-16 text-center text-slate-500">Loading…</div>;
 
     return (
-        <div className="container mx-auto px-4 py-8">
-            <h1 className="text-2xl font-bold mb-6">Edit Event</h1>
-            <form onSubmit={handleSubmit} className="max-w-2xl mx-auto">
+        <div className="bg-surface-200/40 min-h-screen pb-12">
+        <div className="container-page py-8 max-w-3xl">
+            <h1 className="text-3xl font-bold text-navy-600 mb-1">Edit event</h1>
+            <p className="text-sm text-slate-500 mb-6">Saving will return this event to admin review.</p>
+            {error && <div className="rounded-lg p-3 mb-4 bg-rose-50 border border-rose-200 text-sm text-rose-700">{error}</div>}
+            <form onSubmit={handleSubmit} className="card">
                 <div className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">Title</label>
+                        <label className="block text-sm font-medium text-slate-700">Title</label>
                         <input
                             type="text"
                             name="title"
                             value={formData.title}
                             onChange={handleChange}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                            className="input mt-1"
                             required
                         />
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">Description</label>
+                        <label className="block text-sm font-medium text-slate-700">Description</label>
                         <textarea
                             name="description"
                             value={formData.description}
                             onChange={handleChange}
                             rows="4"
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                            className="input mt-1"
                             required
                         />
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">Date</label>
+                        <label className="block text-sm font-medium text-slate-700">Date</label>
                         <input
                             type="date"
                             name="date"
                             value={formData.date}
                             onChange={handleChange}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                            className="input mt-1"
                             required
                         />
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">Location</label>
+                        <label className="block text-sm font-medium text-slate-700">Location</label>
                         <input
                             type="text"
                             name="location"
                             value={formData.location}
                             onChange={handleChange}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                            className="input mt-1"
                             required
                         />
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">Category</label>
+                        <label className="block text-sm font-medium text-slate-700">Category</label>
                         <select
                             name="category"
                             value={formData.category}
                             onChange={handleChange}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                            className="input mt-1"
                             required
                         >
                             <option value="">Select a category</option>
@@ -217,7 +219,7 @@ const EditEvent = () => {
 
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">Event Image</label>
+                            <label className="block text-sm font-medium text-slate-700">Event Image</label>
                             <input
                                 type="file"
                                 accept="image/*"
@@ -226,18 +228,18 @@ const EditEvent = () => {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">Image URL (Optional)</label>
+                            <label className="block text-sm font-medium text-slate-700">Image URL (Optional)</label>
                             <input
                                 type="url"
                                 name="image"
                                 value={formData.image}
                                 onChange={handleChange}
                                 placeholder="https://example.com/event-photo.jpg"
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                className="input mt-1"
                             />
                         </div>
                         {imagePreview && (
-                            <div className="rounded-xl overflow-hidden border border-gray-200 bg-white">
+                            <div className="rounded-xl overflow-hidden border border-slate-200 bg-white">
                                 <img src={imagePreview} alt="Event preview" className="w-full h-48 object-cover" />
                             </div>
                         )}
@@ -254,24 +256,25 @@ const EditEvent = () => {
                         </div>
                     )}
 
-                    <div className="flex justify-end space-x-4">
+                    <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
                         <button
                             type="button"
                             onClick={() => navigate('/my-events')}
-                            className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                            className="btn btn-outline btn-sm"
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
                             disabled={submitting}
-                            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
+                            className="btn btn-primary btn-sm"
                         >
-                            {submitting ? 'Updating...' : 'Update Event'}
+                            {submitting ? 'Updating…' : 'Update event'}
                         </button>
                     </div>
                 </div>
             </form>
+        </div>
         </div>
     );
 };

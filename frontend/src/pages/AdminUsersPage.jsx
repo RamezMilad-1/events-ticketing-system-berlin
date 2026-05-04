@@ -71,17 +71,17 @@ const AdminUsersPage = () => {
         }
     };
 
-    if (loading) return <Loader fullScreen label="Loading users..." />;
+    if (loading) return <Loader fullScreen label="Loading users…" />;
 
     return (
-        <div className="min-h-screen bg-gray-50 p-8">
-            <div className="max-w-7xl mx-auto">
+        <div className="min-h-screen bg-surface-200/40 pb-12">
+            <div className="container-page py-8">
                 <header className="mb-6">
-                    <h1 className="text-3xl font-bold text-slate-900">User Management</h1>
+                    <h1 className="text-3xl font-bold text-navy-600">User management</h1>
                     <p className="text-slate-600 mt-1">View, update roles, and remove user accounts.</p>
                 </header>
 
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="bg-white rounded-2xl shadow-card border border-slate-200 overflow-hidden">
                     <div className="px-6 py-4 border-b border-slate-200">
                         <div className="flex items-center justify-between gap-4 flex-wrap">
                             <h2 className="text-lg font-semibold text-slate-800">{users.length} users</h2>
@@ -92,10 +92,10 @@ const AdminUsersPage = () => {
                                 />
                                 <input
                                     type="text"
-                                    placeholder="Search by name or email..."
+                                    placeholder="Search by name or email…"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                    className="input pl-10 py-2 text-sm w-64"
                                 />
                             </div>
                         </div>

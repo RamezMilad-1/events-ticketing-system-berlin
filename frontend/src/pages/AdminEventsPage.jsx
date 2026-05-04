@@ -6,6 +6,7 @@ import { eventService } from '../services/api';
 import Loader from '../components/ui/Loader';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import EmptyState from '../components/ui/EmptyState';
+import { formatPrice } from '../utils/format';
 
 const STATUS_TABS = [
     { id: 'all', label: 'All' },
@@ -102,10 +103,11 @@ const AdminEventsPage = () => {
     if (loading) return <Loader fullScreen label="Loading events..." />;
 
     return (
-        <div className="container mx-auto max-w-7xl px-4 py-10">
-            <header className="mb-8">
-                <h1 className="text-3xl font-bold text-slate-900">Manage Events</h1>
-                <p className="text-slate-600 mt-1">Approve, decline, or remove events submitted by organizers.</p>
+        <div className="bg-surface-200/40 min-h-screen pb-12">
+        <div className="container-page py-8">
+            <header className="mb-6">
+                <h1 className="text-3xl font-bold text-navy-600">Manage events</h1>
+                <p className="text-slate-600 mt-1">Approve, decline, or remove events submitted by organisers.</p>
             </header>
 
             {/* Tabs */}
@@ -116,7 +118,7 @@ const AdminEventsPage = () => {
                         onClick={() => setFilter(tab.id)}
                         className={`px-4 py-2 rounded-lg text-sm font-semibold transition flex items-center gap-2 ${
                             filter === tab.id
-                                ? 'bg-indigo-600 text-white shadow'
+                                ? 'bg-primary-600 text-white shadow'
                                 : 'text-slate-600 hover:bg-slate-100'
                         }`}
                     >
@@ -163,7 +165,7 @@ const AdminEventsPage = () => {
                                                     <div className="min-w-0">
                                                         <Link
                                                             to={`/events/${event._id}`}
-                                                            className="font-semibold text-slate-900 hover:text-indigo-600 line-clamp-1"
+                                                            className="font-semibold text-slate-900 hover:text-primary-600 line-clamp-1"
                                                         >
                                                             {event.title}
                                                         </Link>
@@ -188,7 +190,7 @@ const AdminEventsPage = () => {
                                                     Available: {available} / {total}
                                                 </div>
                                                 {event.ticketPrice != null && (
-                                                    <div className="text-slate-500 text-xs">From ${event.ticketPrice}</div>
+                                                    <div className="text-slate-500 text-xs">From {formatPrice(event.ticketPrice)}</div>
                                                 )}
                                             </td>
                                             <td className="px-6 py-4">
@@ -248,6 +250,7 @@ const AdminEventsPage = () => {
                 onConfirm={handleDelete}
                 onCancel={() => setDeleteId(null)}
             />
+        </div>
         </div>
     );
 };

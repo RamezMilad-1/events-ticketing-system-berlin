@@ -59,9 +59,9 @@ const DynamicCustomFields = ({ category, customFields, onCustomFieldsChange, err
             case 'text':
                 return (
                     <div key={fieldName}>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
                             {fieldConfig.label}
-                            {fieldConfig.required && <span className="text-red-500">*</span>}
+                            {fieldConfig.required && <span className="text-rose-500">*</span>}
                         </label>
                         <input
                             type="text"
@@ -69,18 +69,18 @@ const DynamicCustomFields = ({ category, customFields, onCustomFieldsChange, err
                             onChange={(e) => handleFieldChange(fieldName, e.target.value)}
                             placeholder={fieldConfig.placeholder}
                             required={fieldConfig.required}
-                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
                         />
-                        {fieldError && <p className="mt-1 text-sm text-red-600">{fieldError}</p>}
+                        {fieldError && <p className="mt-1 text-sm text-rose-600">{fieldError}</p>}
                     </div>
                 );
 
             case 'number':
                 return (
                     <div key={fieldName}>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
                             {fieldConfig.label}
-                            {fieldConfig.required && <span className="text-red-500">*</span>}
+                            {fieldConfig.required && <span className="text-rose-500">*</span>}
                         </label>
                         <input
                             type="number"
@@ -88,9 +88,9 @@ const DynamicCustomFields = ({ category, customFields, onCustomFieldsChange, err
                             onChange={(e) => handleFieldChange(fieldName, e.target.value)}
                             placeholder={fieldConfig.placeholder}
                             required={fieldConfig.required}
-                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
                         />
-                        {fieldError && <p className="mt-1 text-sm text-red-600">{fieldError}</p>}
+                        {fieldError && <p className="mt-1 text-sm text-rose-600">{fieldError}</p>}
                     </div>
                 );
 
@@ -104,27 +104,27 @@ const DynamicCustomFields = ({ category, customFields, onCustomFieldsChange, err
                                 onChange={(e) => handleFieldChange(fieldName, e.target.checked)}
                                 className="mr-2"
                             />
-                            <span className="text-sm font-medium text-gray-700">
+                            <span className="text-sm font-medium text-slate-700">
                                 {fieldConfig.label}
-                                {fieldConfig.required && <span className="text-red-500">*</span>}
+                                {fieldConfig.required && <span className="text-rose-500">*</span>}
                             </span>
                         </label>
-                        {fieldError && <p className="mt-1 text-sm text-red-600">{fieldError}</p>}
+                        {fieldError && <p className="mt-1 text-sm text-rose-600">{fieldError}</p>}
                     </div>
                 );
 
             case 'select':
                 return (
                     <div key={fieldName}>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
                             {fieldConfig.label}
-                            {fieldConfig.required && <span className="text-red-500">*</span>}
+                            {fieldConfig.required && <span className="text-rose-500">*</span>}
                         </label>
                         <select
                             value={value || ''}
                             onChange={(e) => handleFieldChange(fieldName, e.target.value)}
                             required={fieldConfig.required}
-                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
                         >
                             <option value="">Select {fieldConfig.label.toLowerCase()}</option>
                             {fieldConfig.options.map(option => (
@@ -133,7 +133,7 @@ const DynamicCustomFields = ({ category, customFields, onCustomFieldsChange, err
                                 </option>
                             ))}
                         </select>
-                        {fieldError && <p className="mt-1 text-sm text-red-600">{fieldError}</p>}
+                        {fieldError && <p className="mt-1 text-sm text-rose-600">{fieldError}</p>}
                     </div>
                 );
 
@@ -142,18 +142,18 @@ const DynamicCustomFields = ({ category, customFields, onCustomFieldsChange, err
                     // Handle object arrays (like lineup_schedule, agenda)
                     return (
                         <div key={fieldName}>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-slate-700 mb-2">
                                 {fieldConfig.label}
-                                {fieldConfig.required && <span className="text-red-500">*</span>}
+                                {fieldConfig.required && <span className="text-rose-500">*</span>}
                             </label>
                             {(value || []).map((item, index) => (
-                                <div key={index} className="border rounded-lg p-4 mb-2 bg-gray-50">
+                                <div key={index} className="border rounded-lg p-4 mb-2 bg-slate-50">
                                     <div className="flex justify-between items-center mb-2">
                                         <span className="text-sm font-medium">Item {index + 1}</span>
                                         <button
                                             type="button"
                                             onClick={() => handleObjectArrayRemove(fieldName, index)}
-                                            className="text-red-500 hover:text-red-700"
+                                            className="text-rose-500 hover:text-rose-700"
                                         >
                                             Remove
                                         </button>
@@ -164,16 +164,16 @@ const DynamicCustomFields = ({ category, customFields, onCustomFieldsChange, err
 
                                                 return (
                                                     <div key={field.name} className="mb-2">
-                                                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                                                        <label className="block text-xs font-medium text-slate-600 mb-1">
                                                             {field.label}
-                                                            {field.required && <span className="text-red-500">*</span>}
+                                                            {field.required && <span className="text-rose-500">*</span>}
                                                         </label>
                                                         {field.type === 'select' ? (
                                                             <select
                                                                 value={fieldValue}
                                                                 onChange={(e) => handleObjectArrayItemChange(fieldName, index, field.name, e.target.value)}
                                                                 required={field.required}
-                                                                className="w-full px-2 py-1 text-sm border rounded focus:ring-1 focus:ring-blue-500 outline-none"
+                                                                className="w-full px-2 py-1 text-sm border rounded focus:ring-1 focus:ring-primary-500 outline-none"
                                                             >
                                                                 <option value="">Select {field.label.toLowerCase()}</option>
                                                                 {fieldOptions.map((option, optIndex) => (
@@ -188,7 +188,7 @@ const DynamicCustomFields = ({ category, customFields, onCustomFieldsChange, err
                                                                 value={fieldValue}
                                                                 onChange={(e) => handleObjectArrayItemChange(fieldName, index, field.name, e.target.value)}
                                                                 required={field.required}
-                                                                className="w-full px-2 py-1 text-sm border rounded focus:ring-1 focus:ring-blue-500 outline-none"
+                                                                className="w-full px-2 py-1 text-sm border rounded focus:ring-1 focus:ring-primary-500 outline-none"
                                                             />
                                                         )}
                                                     </div>
@@ -199,20 +199,20 @@ const DynamicCustomFields = ({ category, customFields, onCustomFieldsChange, err
                             <button
                                 type="button"
                                 onClick={() => handleObjectArrayAdd(fieldName, fieldConfig.fields)}
-                                className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
+                                className="px-3 py-1 text-sm bg-primary-500 text-white rounded hover:bg-primary-600"
                             >
                                 Add {fieldConfig.label.slice(0, -1)}
                             </button>
-                            {fieldError && <p className="mt-1 text-sm text-red-600">{fieldError}</p>}
+                            {fieldError && <p className="mt-1 text-sm text-rose-600">{fieldError}</p>}
                         </div>
                     );
                 } else {
                     // Handle simple arrays
                     return (
                         <div key={fieldName}>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-slate-700 mb-2">
                                 {fieldConfig.label}
-                                {fieldConfig.required && <span className="text-red-500">*</span>}
+                                {fieldConfig.required && <span className="text-rose-500">*</span>}
                             </label>
                             {(value || []).map((item, index) => (
                                 <div key={index} className="flex items-center mb-2">
@@ -221,12 +221,12 @@ const DynamicCustomFields = ({ category, customFields, onCustomFieldsChange, err
                                         value={item}
                                         onChange={(e) => handleArrayItemChange(fieldName, index, e.target.value)}
                                         placeholder={fieldConfig.placeholder}
-                                        className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                        className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
                                     />
                                     <button
                                         type="button"
                                         onClick={() => handleArrayRemove(fieldName, index)}
-                                        className="ml-2 px-3 py-2 text-red-500 hover:text-red-700"
+                                        className="ml-2 px-3 py-2 text-rose-500 hover:text-rose-700"
                                     >
                                         Remove
                                     </button>
@@ -235,11 +235,11 @@ const DynamicCustomFields = ({ category, customFields, onCustomFieldsChange, err
                             <button
                                 type="button"
                                 onClick={() => handleArrayAdd(fieldName)}
-                                className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
+                                className="px-3 py-1 text-sm bg-primary-500 text-white rounded hover:bg-primary-600"
                             >
                                 Add {fieldConfig.label.slice(0, -1)}
                             </button>
-                            {fieldError && <p className="mt-1 text-sm text-red-600">{fieldError}</p>}
+                            {fieldError && <p className="mt-1 text-sm text-rose-600">{fieldError}</p>}
                         </div>
                     );
                 }
@@ -255,7 +255,7 @@ const DynamicCustomFields = ({ category, customFields, onCustomFieldsChange, err
 
     return (
         <div className="space-y-6">
-            <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
+            <h3 className="text-lg font-semibold text-slate-900 border-b pb-2">
                 {category.charAt(0).toUpperCase() + category.slice(1)} Details
             </h3>
             {Object.entries(fields).map(([fieldName, fieldConfig]) =>

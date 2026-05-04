@@ -61,7 +61,7 @@ export const AuthProvider = ({ children }) => {
     const refreshUser = async () => fetchUser();
 
     if (loading) {
-        return <Loader fullScreen label="Loading EventHub..." />;
+        return <Loader fullScreen label="Loading EarlyHub..." />;
     }
 
     return (

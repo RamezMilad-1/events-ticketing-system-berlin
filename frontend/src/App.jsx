@@ -24,6 +24,9 @@ import CreateEvent from './pages/CreateEvent';
 import EventAnalytics from './pages/EventAnalytics';
 import AdminEventsPage from './pages/AdminEventsPage';
 import AdminUsersPage from './pages/AdminUsersPage';
+import Outlets from './pages/Outlets';
+import About from './pages/About';
+import Contact from './pages/Contact';
 
 const STANDARD_USER = ['Standard User'];
 const ORGANIZER = ['Organizer'];
@@ -54,6 +57,13 @@ function App() {
                     {/* App routes inside Layout (Navbar + Footer) */}
                     <Route path="/" element={<Layout />}>
                         <Route index element={<EventList />} />
+
+                        {/* Static parity pages */}
+                        <Route path="outlets" element={<Outlets />} />
+                        <Route path="about" element={<About />} />
+                        <Route path="about-us" element={<About />} />
+                        <Route path="contact" element={<Contact />} />
+                        <Route path="contact-us" element={<Contact />} />
 
                         {/* Profile (any authenticated role) */}
                         <Route

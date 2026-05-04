@@ -1,7 +1,7 @@
 {
-    "name": "event-ticketing-backend",
+    "name": "earlyhub-backend",
     "version": "1.0.0",
-    "description": "Online Event Ticketing System backend (Express + Mongoose + JWT)",
+    "description": "EarlyHub — Berlin events ticketing backend (Express + Mongoose + JWT)",
     "main": "app.js",
     "scripts": {
         "start": "node app.js",

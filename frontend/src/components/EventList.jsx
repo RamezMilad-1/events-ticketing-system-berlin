@@ -1,10 +1,15 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Search, Filter, X } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { Search, SlidersHorizontal, X } from 'lucide-react';
 import EventCard from './EventCard';
+import HotEventsCarousel from './HotEventsCarousel';
+import CategoryTiles from './CategoryTiles';
+import VenueGrid from './VenueGrid';
 import Loader from './ui/Loader';
 import EmptyState from './ui/EmptyState';
 import { eventService } from '../services/api';
 import { categoryOptions } from '../utils/categoryFields';
+import { getMinPrice } from '../utils/format';
 
 const SORT_OPTIONS = [
     { value: 'date-asc', label: 'Date: Soonest first' },
@@ -19,9 +24,10 @@ const EventList = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    const [searchParams, setSearchParams] = useSearchParams();
     const [search, setSearch] = useState('');
-    const [category, setCategory] = useState('all');
-    const [location, setLocation] = useState('');
+    const [category, setCategory] = useState(searchParams.get('category') || 'all');
+    const [location, setLocation] = useState(searchParams.get('location') || '');
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
     const [sort, setSort] = useState('date-asc');
@@ -41,19 +47,29 @@ const EventList = () => {
         fetchEvents();
     }, []);
 
+    // Sync URL → state on direct navigation (e.g. /?category=concert)
+    useEffect(() => {
+        const cat = searchParams.get('category');
+        const loc = searchParams.get('location');
+        if (cat && cat !== category) setCategory(cat);
+        if (loc && loc !== location) setLocation(loc);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchParams]);
+
+    const upcomingEvents = useMemo(
+        () =>
+            [...events]
+                .filter((ev) => new Date(ev.date) >= new Date())
+                .sort((a, b) => new Date(a.date) - new Date(b.date)),
+        [events]
+    );
+
     const filteredEvents = useMemo(() => {
         const q = search.trim().toLowerCase();
         const loc = location.trim().toLowerCase();
         const from = dateFrom ? new Date(dateFrom) : null;
         const to = dateTo ? new Date(dateTo) : null;
         if (to) to.setHours(23, 59, 59, 999);
-
-        const getMinPrice = (event) => {
-            if (event.ticketTypes?.length > 0) {
-                return Math.min(...event.ticketTypes.map((t) => t.price));
-            }
-            return event.ticketPrice || 0;
-        };
 
         let list = events.filter((event) => {
             if (q && !event.title?.toLowerCase().includes(q) && !event.description?.toLowerCase().includes(q)) {
@@ -92,6 +108,16 @@ const EventList = () => {
         setDateFrom('');
         setDateTo('');
         setSort('date-asc');
+        setSearchParams({});
+    };
+
+    const handleCategorySelect = (cat) => {
+        setCategory(cat);
+        setSearchParams({ category: cat });
+        setTimeout(() => {
+            const grid = document.getElementById('event-grid');
+            if (grid) grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 50);
     };
 
     const activeFilterCount =
@@ -101,74 +127,63 @@ const EventList = () => {
         (dateFrom ? 1 : 0) +
         (dateTo ? 1 : 0);
 
-    if (loading) return <Loader fullScreen label="Discovering amazing events..." />;
+    if (loading) return <Loader fullScreen label="Discovering events…" />;
 
     if (error) {
         return (
-            <div className="min-h-[400px] flex items-center justify-center">
-                <div className="text-center">
-                    <p className="text-lg text-red-600 font-semibold mb-4">⚠️ {error}</p>
-                    <p className="text-slate-600">Please try again later.</p>
-                </div>
+            <div className="container-page py-16 text-center">
+                <p className="text-lg text-rose-600 font-semibold mb-2">Couldn't load events</p>
+                <p className="text-slate-600">{error}</p>
             </div>
         );
     }
 
     return (
         <div className="min-h-screen">
-            {/* Hero */}
-            <div className="gradient-bg py-16 sm:py-24 text-white">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                    <h1 className="text-5xl sm:text-6xl font-bold mb-4">Discover Amazing Events</h1>
-                    <p className="text-xl text-blue-100 max-w-2xl mx-auto">
-                        Find and book tickets for the best events happening near you
-                    </p>
+            {/* Hot Events */}
+            <HotEventsCarousel events={upcomingEvents.slice(0, 8)} />
 
-                    {/* Search bar */}
-                    <div className="mt-8 max-w-2xl mx-auto">
-                        <div className="relative">
-                            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                            <input
-                                type="text"
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                placeholder="Search events by name or description..."
-                                className="w-full rounded-full bg-white/95 px-14 py-4 text-base text-slate-900 placeholder:text-slate-400 shadow-lg focus:outline-none focus:ring-4 focus:ring-white/30"
-                            />
-                            {search && (
-                                <button
-                                    onClick={() => setSearch('')}
-                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                                    aria-label="Clear search"
-                                >
-                                    <X size={18} />
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </div>
+            {/* Category tiles */}
+            <CategoryTiles events={events} onSelect={handleCategorySelect} />
 
-            {/* Content */}
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-                {/* Header */}
-                <div className="mb-8 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+            {/* All-events listing */}
+            <section id="event-grid" className="container-page py-4 sm:py-6">
+                <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
                     <div>
-                        <h2 className="text-3xl font-bold text-slate-900">
-                            {filteredEvents.length} {filteredEvents.length === 1 ? 'Event' : 'Events'} found
-                        </h2>
-                        <p className="text-slate-600 mt-1">
-                            {filteredEvents.length === 0
-                                ? 'No events match your filters'
-                                : 'Browse and book your next experience'}
+                        <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">All events</h2>
+                        <p className="text-sm text-slate-500 mt-1">
+                            {filteredEvents.length} {filteredEvents.length === 1 ? 'event' : 'events'}
+                            {category !== 'all' && (
+                                <span> · <span className="font-semibold capitalize text-slate-700">{category}</span></span>
+                            )}
                         </p>
                     </div>
 
                     <div className="flex items-center gap-2">
+                        <div className="relative flex-grow sm:flex-grow-0 sm:w-64">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                            <input
+                                type="text"
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                placeholder="Search events…"
+                                className="input pl-9 py-2 text-sm"
+                            />
+                            {search && (
+                                <button
+                                    onClick={() => setSearch('')}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                    aria-label="Clear search"
+                                >
+                                    <X size={14} />
+                                </button>
+                            )}
+                        </div>
+
                         <select
                             value={sort}
                             onChange={(e) => setSort(e.target.value)}
-                            className="input py-2 text-sm"
+                            className="input py-2 text-sm w-auto"
                             aria-label="Sort events"
                         >
                             {SORT_OPTIONS.map((opt) => (
@@ -179,12 +194,12 @@ const EventList = () => {
                         </select>
                         <button
                             onClick={() => setShowFilters((s) => !s)}
-                            className="inline-flex items-center gap-2 rounded-lg border-2 border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:border-indigo-300 hover:text-indigo-600 transition"
+                            className="btn btn-outline btn-sm shrink-0"
                         >
-                            <Filter size={16} />
+                            <SlidersHorizontal size={14} />
                             Filters
                             {activeFilterCount > 0 && (
-                                <span className="ml-1 inline-flex items-center justify-center rounded-full bg-indigo-600 px-2 text-xs font-bold text-white">
+                                <span className="ml-1 inline-flex items-center justify-center min-w-[20px] h-5 rounded-full bg-primary-500 px-1.5 text-[10px] font-bold text-white">
                                     {activeFilterCount}
                                 </span>
                             )}
@@ -192,10 +207,9 @@ const EventList = () => {
                     </div>
                 </div>
 
-                {/* Filter panel */}
                 {showFilters && (
-                    <div className="mb-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-card animate-fade-in">
+                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                             <div>
                                 <label className="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-1">Category</label>
                                 <select value={category} onChange={(e) => setCategory(e.target.value)} className="input py-2 text-sm">
@@ -208,12 +222,12 @@ const EventList = () => {
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-1">Location</label>
+                                <label className="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-1">Venue / location</label>
                                 <input
                                     type="text"
                                     value={location}
                                     onChange={(e) => setLocation(e.target.value)}
-                                    placeholder="City, venue..."
+                                    placeholder="e.g. Berghain"
                                     className="input py-2 text-sm"
                                 />
                             </div>
@@ -238,10 +252,7 @@ const EventList = () => {
                         </div>
                         {activeFilterCount > 0 && (
                             <div className="mt-4 flex justify-end">
-                                <button
-                                    onClick={clearFilters}
-                                    className="text-sm font-semibold text-indigo-600 hover:text-indigo-700"
-                                >
+                                <button onClick={clearFilters} className="text-sm font-semibold text-primary-600 hover:text-primary-700">
                                     Clear all filters
                                 </button>
                             </div>
@@ -249,9 +260,8 @@ const EventList = () => {
                     </div>
                 )}
 
-                {/* Grid */}
                 {filteredEvents.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                         {filteredEvents.map((event) => (
                             <div key={event._id} className="animate-slideUp">
                                 <EventCard event={event} />
@@ -261,10 +271,10 @@ const EventList = () => {
                 ) : (
                     <EmptyState
                         icon="🎟️"
-                        title="No events found"
+                        title="No events match your filters"
                         description={
                             activeFilterCount > 0
-                                ? 'Try adjusting your filters or clearing them to see all events.'
+                                ? 'Try adjusting or clearing them to see all upcoming events.'
                                 : 'There are no approved events at the moment. Please check back later.'
                         }
                         action={
@@ -276,7 +286,10 @@ const EventList = () => {
                         }
                     />
                 )}
-            </div>
+            </section>
+
+            {/* Venues */}
+            <VenueGrid events={events} />
         </div>
     );
 };

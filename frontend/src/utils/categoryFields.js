@@ -23,7 +23,7 @@ export const categoryFields = {
             itemType: 'object',
             fields: [
                 { name: 'type', label: 'Type', type: 'text', required: true },
-                { name: 'price', label: 'Price ($)', type: 'number', required: true },
+                { name: 'price', label: 'Price (€)', type: 'number', required: true },
                 { name: 'quantity', label: 'Quantity', type: 'number', required: true }
             ],
             default: [
@@ -63,7 +63,7 @@ export const categoryFields = {
             itemType: 'object',
             fields: [
                 { name: 'type', label: 'Type', type: 'text', required: true },
-                { name: 'price', label: 'Price ($)', type: 'number', required: true },
+                { name: 'price', label: 'Price (€)', type: 'number', required: true },
                 { name: 'quantity', label: 'Quantity', type: 'number', required: true }
             ],
             default: [

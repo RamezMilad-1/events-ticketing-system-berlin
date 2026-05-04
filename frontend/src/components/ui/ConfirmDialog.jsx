@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 
 const VARIANTS = {
     danger: 'bg-red-600 hover:bg-red-700',
-    primary: 'bg-indigo-600 hover:bg-indigo-700',
+    primary: 'bg-primary-600 hover:bg-primary-700',
     warning: 'bg-amber-500 hover:bg-amber-600',
 };
 

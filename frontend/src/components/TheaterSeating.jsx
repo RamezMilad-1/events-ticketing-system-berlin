@@ -144,7 +144,7 @@ const TheaterSeating = ({
                             type="button"
                             disabled={seat.isBooked || maxSelectable === 0}
                             onClick={() => handleSeatClick(seat)}
-                            title={`Row ${seat.row}, Seat ${seat.column}${seat.tier ? ` (${seat.tier.type} — $${seat.tier.price})` : ''}`}
+                            title={`Row ${seat.row}, Seat ${seat.column}${seat.tier ? ` (${seat.tier.type} — €${seat.tier.price})` : ''}`}
                             className={`${seatSize} ${seatClass(seat)}`}
                             aria-label={`Row ${seat.row} seat ${seat.column}`}
                         >
@@ -164,7 +164,7 @@ const TheaterSeating = ({
                             type="button"
                             disabled={seat.isBooked || maxSelectable === 0}
                             onClick={() => handleSeatClick(seat)}
-                            title={`Row ${seat.row}, Seat ${seat.column}${seat.tier ? ` (${seat.tier.type} — $${seat.tier.price})` : ''}`}
+                            title={`Row ${seat.row}, Seat ${seat.column}${seat.tier ? ` (${seat.tier.type} — €${seat.tier.price})` : ''}`}
                             className={`${seatSize} ${seatClass(seat)}`}
                             aria-label={`Row ${seat.row} seat ${seat.column}`}
                         >
@@ -217,7 +217,7 @@ const TheaterSeating = ({
                         <LegendDot
                             key={tier.type}
                             className={TIER_COLOR_CLASSES[Math.min(i, TIER_COLOR_CLASSES.length - 1)]}
-                            label={`${tier.type} — $${tier.price}`}
+                            label={`${tier.type} — €${tier.price}`}
                         />
                     ))
                 ) : (

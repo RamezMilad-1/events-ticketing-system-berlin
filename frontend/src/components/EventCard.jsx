@@ -1,114 +1,114 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { Calendar, MapPin, Flame } from 'lucide-react';
+import {
+    formatDate,
+    formatPrice,
+    formatPriceRange,
+    getMinPrice,
+    getMaxPrice,
+    getAvailableTickets,
+} from '../utils/format';
 
 const EventCard = ({ event }) => {
-    const formattedDate = new Date(event.date).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
-    });
+    const date = new Date(event.date);
+    const formattedDate = formatDate(date);
 
-    const daysUntilEvent = Math.ceil((new Date(event.date) - new Date()) / (1000 * 60 * 60 * 24));
-    const isUpcoming = daysUntilEvent > 0;
+    const daysUntilEvent = Math.ceil((date - new Date()) / (1000 * 60 * 60 * 24));
+    const isEndingSoon = daysUntilEvent > 0 && daysUntilEvent <= 7;
 
-    // Calculate available tickets and pricing based on ticket system
-    let availableTickets = 0;
-    let priceDisplay = '';
-    let isSoldOut = false;
+    const min = getMinPrice(event);
+    const max = getMaxPrice(event);
+    const priceDisplay = min === max ? formatPrice(min) : `from ${formatPrice(min)}`;
+    const priceTooltip = min === max ? formatPrice(min) : formatPriceRange(min, max);
 
-    if (event.ticketTypes && event.ticketTypes.length > 0) {
-        // New ticket types system
-        availableTickets = event.ticketTypes.reduce((total, ticket) => total + ticket.remaining, 0);
-        const prices = event.ticketTypes.map(ticket => ticket.price);
-        const minPrice = Math.min(...prices);
-        const maxPrice = Math.max(...prices);
-        priceDisplay = minPrice === maxPrice ? `$${minPrice}` : `$${minPrice} - $${maxPrice}`;
-        isSoldOut = availableTickets === 0;
-    } else {
-        // Legacy system
-        availableTickets = event.remainingTickets || 0;
-        priceDisplay = event.ticketPrice ? `$${event.ticketPrice}` : 'Price TBA';
-        isSoldOut = availableTickets === 0;
-    }
+    const availableTickets = getAvailableTickets(event);
+    const isSoldOut = availableTickets === 0;
 
     return (
-        <Link to={`/events/${event._id}`} className="group">
-            <div className="card-hover overflow-hidden h-full cursor-pointer">
-                {/* Image Container */}
-                <div className="relative h-48 overflow-hidden bg-gradient-to-br from-slate-200 to-slate-300">
-                    {event.image && (
-                        <img
-                            src={event.image}
-                            alt={event.title}
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                        />
-                    )}
-                    
-                    {/* Overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
-                        <p className="text-white text-sm font-semibold">View Details</p>
+        <article className="group relative flex flex-col overflow-hidden rounded-2xl bg-white border border-slate-200/70 shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200">
+            {/* Poster */}
+            <Link to={`/events/${event._id}`} className="relative block aspect-[4/3] overflow-hidden bg-surface-200">
+                {event.image ? (
+                    <img
+                        src={event.image}
+                        alt={event.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        loading="lazy"
+                    />
+                ) : (
+                    <div className="w-full h-full flex items-center justify-center text-slate-400">
+                        <Calendar size={48} strokeWidth={1.5} />
                     </div>
+                )}
 
-                    {/* Badges */}
-                    <div className="absolute top-4 right-4 flex gap-2">
-                        {isUpcoming && daysUntilEvent <= 7 && (
-                            <span className="badge badge-danger text-xs">🔥 Ending Soon</span>
-                        )}
-                        {isSoldOut && (
-                            <span className="badge bg-gray-600 text-white text-xs">Sold Out</span>
-                        )}
-                    </div>
-
-                    {/* Date Badge */}
-                    <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur px-3 py-2 rounded-lg">
-                        <p className="text-xs font-semibold text-indigo-600">{formattedDate}</p>
-                    </div>
-                </div>
-
-                {/* Content */}
-                <div className="p-5">
-                    {/* Category */}
-                    {event.category && (
-                        <span className="badge badge-primary text-xs mb-3">
-                            {event.category}
+                {/* Top-right badges */}
+                <div className="absolute top-3 right-3 flex flex-col items-end gap-1.5">
+                    {isSoldOut && (
+                        <span className="px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wide bg-slate-900/85 text-white backdrop-blur">
+                            Sold out
                         </span>
                     )}
+                    {!isSoldOut && isEndingSoon && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wide bg-amber-500 text-white shadow-sm">
+                            <Flame size={12} /> Ending soon
+                        </span>
+                    )}
+                </div>
 
-                    {/* Title */}
-                    <h3 className="text-lg font-bold text-slate-900 mb-2 group-hover:text-indigo-600 transition-colors line-clamp-2">
-                        {event.title}
-                    </h3>
-
-                    {/* Description */}
-                    <p className="text-sm text-slate-600 mb-4 line-clamp-2">
-                        {event.description}
+                {/* Bottom-left date pill */}
+                <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur rounded-lg shadow-sm px-2.5 py-1.5">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-primary-600 leading-none">
+                        {date.toLocaleDateString('en-GB', { month: 'short' })}
                     </p>
+                    <p className="text-base font-bold text-slate-900 leading-none mt-0.5">
+                        {date.toLocaleDateString('en-GB', { day: '2-digit' })}
+                    </p>
+                </div>
+            </Link>
 
-                    {/* Footer Info */}
-                    <div className="flex items-center justify-between pt-4 border-t border-slate-200">
-                        <div>
-                            <p className="text-xs text-slate-500 mb-1">Ticket Price</p>
-                            <p className="text-xl font-bold text-indigo-600">
-                                {priceDisplay}
-                            </p>
-                        </div>
-                        
-                        <div className="text-right">
-                            <p className="text-xs text-slate-500 mb-1">Available</p>
-                            <p className={`text-lg font-semibold ${isSoldOut ? 'text-red-600' : 'text-green-600'}`}>
-                                {isSoldOut ? 'Sold Out' : `${availableTickets} left`}
-                            </p>
-                        </div>
+            {/* Body */}
+            <div className="flex flex-col flex-grow p-4">
+                {event.category && (
+                    <span className="inline-flex self-start text-[11px] font-bold uppercase tracking-wider text-primary-700 bg-primary-50 px-2 py-0.5 rounded-full mb-2">
+                        {event.category}
+                    </span>
+                )}
+
+                <h3 className="text-base font-bold text-slate-900 leading-snug line-clamp-2 group-hover:text-primary-700 transition-colors">
+                    <Link to={`/events/${event._id}`}>{event.title}</Link>
+                </h3>
+
+                <div className="mt-2 space-y-1 text-sm text-slate-500">
+                    <div className="flex items-center gap-1.5">
+                        <Calendar size={14} className="shrink-0 text-slate-400" />
+                        <span className="truncate">{formattedDate}</span>
                     </div>
+                    <div className="flex items-center gap-1.5">
+                        <MapPin size={14} className="shrink-0 text-slate-400" />
+                        <span className="truncate">{event.location}</span>
+                    </div>
+                </div>
 
-                    {/* Button */}
-                    <button className="w-full mt-4 btn btn-primary btn-sm group-hover:shadow-lg transition-all">
-                        {isSoldOut ? 'Sold Out' : 'View & Book'}
-                    </button>
+                {/* Spacer pushes footer down */}
+                <div className="flex-grow" />
+
+                <div className="mt-4 pt-3 border-t border-slate-100 flex items-end justify-between gap-2">
+                    <div title={priceTooltip}>
+                        <p className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">From</p>
+                        <p className="text-lg font-bold text-slate-900">{priceDisplay}</p>
+                    </div>
+                    <Link
+                        to={`/events/${event._id}`}
+                        className={`btn btn-sm ${isSoldOut ? 'btn-outline cursor-not-allowed opacity-70' : 'btn-primary'}`}
+                        onClick={(e) => isSoldOut && e.preventDefault()}
+                    >
+                        {isSoldOut ? 'Sold out' : 'Book now'}
+                    </Link>
                 </div>
             </div>
-        </Link>
+        </article>
     );
 };
 
-export default EventCard; 
+export default EventCard;

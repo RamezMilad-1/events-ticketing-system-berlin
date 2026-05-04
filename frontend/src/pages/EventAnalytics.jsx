@@ -7,8 +7,9 @@ import {
 import { userService } from '../services/api';
 import Loader from '../components/ui/Loader';
 import EmptyState from '../components/ui/EmptyState';
+import { formatPrice } from '../utils/format';
 
-const COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
+const COLORS = ['#f25445', '#1e2c5e', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899'];
 
 const STATUS_BADGE = {
     approved: 'bg-emerald-100 text-emerald-700',
@@ -16,8 +17,7 @@ const STATUS_BADGE = {
     declined: 'bg-rose-100 text-rose-700',
 };
 
-const formatCurrency = (val) =>
-    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val || 0);
+const formatCurrency = (val) => formatPrice(val);
 
 const EventAnalytics = () => {
     const [events, setEvents] = useState([]);
@@ -59,18 +59,19 @@ const EventAnalytics = () => {
     ];
 
     return (
-        <div className="container mx-auto max-w-7xl px-4 py-10">
-            <header className="mb-8">
-                <h1 className="text-3xl font-bold text-slate-900">Event analytics</h1>
+        <div className="bg-surface-200/40 min-h-screen pb-12">
+        <div className="container-page py-8">
+            <header className="mb-6">
+                <h1 className="text-3xl font-bold text-navy-600">Event analytics</h1>
                 <p className="text-slate-600 mt-1">Track ticket sales and revenue across your events.</p>
             </header>
 
             {/* Summary cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                <StatCard label="Events" value={totals.events} accent="text-indigo-600" />
-                <StatCard label="Total tickets" value={totals.totalTickets} accent="text-emerald-600" />
+                <StatCard label="Events" value={totals.events} accent="text-primary-600" />
+                <StatCard label="Total tickets" value={totals.totalTickets} accent="text-navy-600" />
                 <StatCard label="Tickets sold" value={totals.ticketsSold} accent="text-amber-600" />
-                <StatCard label="Revenue" value={formatCurrency(totals.revenue)} accent="text-purple-600" />
+                <StatCard label="Revenue" value={formatCurrency(totals.revenue)} accent="text-emerald-600" />
             </div>
 
             {/* Charts */}
@@ -85,7 +86,7 @@ const EventAnalytics = () => {
                                 <YAxis domain={[0, 100]} unit="%" />
                                 <Tooltip formatter={(value) => `${value}%`} />
                                 <Legend />
-                                <Bar dataKey="percentageBooked" name="% Booked" fill="#4F46E5" radius={[8, 8, 0, 0]} />
+                                <Bar dataKey="percentageBooked" name="% Booked" fill="#f25445" radius={[8, 8, 0, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
@@ -156,7 +157,7 @@ const EventAnalytics = () => {
                                         <div className="flex items-center gap-2">
                                             <div className="w-32 h-2 rounded-full bg-slate-200 overflow-hidden">
                                                 <div
-                                                    className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-blue-500"
+                                                    className="h-full rounded-full bg-primary-500"
                                                     style={{ width: `${Math.min(100, event.percentageBooked)}%` }}
                                                 />
                                             </div>
@@ -179,6 +180,7 @@ const EventAnalytics = () => {
                     </table>
                 </div>
             </div>
+        </div>
         </div>
     );
 };

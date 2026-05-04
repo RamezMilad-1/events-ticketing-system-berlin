@@ -20,8 +20,8 @@ const DefaultAvatar = ({ name, profilePicture }) => {
   const initial = name ? name.charAt(0).toUpperCase() : '?';
 
   return (
-    <div className="h-full w-full bg-gradient-to-br from-fuchsia-500 to-purple-600 flex items-center justify-center">
-      <span className="text-3xl font-bold text-white">{initial}</span>
+    <div className="h-full w-full bg-gradient-to-br from-primary-500 to-navy-600 flex items-center justify-center">
+      <span className="text-2xl font-bold text-white">{initial}</span>
     </div>
   );
 };

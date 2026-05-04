@@ -5,11 +5,11 @@ const EmptyState = ({
     action,
     className = '',
 }) => (
-    <div className={`rounded-3xl border border-dashed border-slate-200 bg-white/60 p-12 text-center ${className}`}>
-        <div className="text-5xl mb-4">{icon}</div>
-        <h3 className="text-2xl font-bold text-slate-900 mb-2">{title}</h3>
-        {description && <p className="text-slate-600 max-w-md mx-auto">{description}</p>}
-        {action && <div className="mt-6">{action}</div>}
+    <div className={`rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center ${className}`}>
+        <div className="text-5xl mb-3">{icon}</div>
+        <h3 className="text-xl font-bold text-navy-600 mb-1.5">{title}</h3>
+        {description && <p className="text-slate-600 max-w-md mx-auto text-sm leading-relaxed">{description}</p>}
+        {action && <div className="mt-5">{action}</div>}
     </div>
 );
 

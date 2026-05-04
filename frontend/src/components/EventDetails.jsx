@@ -1,32 +1,14 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { ArrowLeft, MapPin, Calendar, Tag, Users, Ticket as TicketIcon } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Tag, Users, Share2, Heart } from 'lucide-react';
 import { eventService, bookingService } from '../services/api';
 import { useAuth } from '../auth/AuthContext';
 import Loader from './ui/Loader';
+import EventCard from './EventCard';
 import SeatSelectionModal from './SeatSelectionModal';
-
-const formatDateTime = (d) =>
-    new Date(d).toLocaleString('en-US', {
-        weekday: 'long',
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-    });
-
-// Returns visual classes + label for a ticket-type's remaining inventory.
-const availabilityBadge = (remaining, total) => {
-    if (remaining === 0) {
-        return { label: 'Sold out', className: 'bg-rose-100 text-rose-700 border-rose-200' };
-    }
-    if (remaining <= 10) {
-        return { label: `Only ${remaining} left`, className: 'bg-amber-100 text-amber-700 border-amber-200' };
-    }
-    return { label: `${remaining} of ${total} available`, className: 'bg-emerald-100 text-emerald-700 border-emerald-200' };
-};
+import TicketSelectionPanel from './TicketSelectionPanel';
+import { formatDateTime, getAvailableTickets } from '../utils/format';
 
 const EventDetails = () => {
     const { eventId } = useParams();
@@ -34,6 +16,7 @@ const EventDetails = () => {
     const { user } = useAuth();
 
     const [event, setEvent] = useState(null);
+    const [allEvents, setAllEvents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -41,9 +24,14 @@ const EventDetails = () => {
 
     useEffect(() => {
         const fetchEventDetails = async () => {
+            setLoading(true);
             try {
-                const eventResponse = await eventService.getEventById(eventId);
+                const [eventResponse, allResponse] = await Promise.all([
+                    eventService.getEventById(eventId),
+                    eventService.getAllEvents().catch(() => ({ data: [] })),
+                ]);
                 setEvent(eventResponse.data);
+                setAllEvents(Array.isArray(allResponse.data) ? allResponse.data : []);
 
                 if (eventResponse.data.category === 'theater' && user) {
                     try {
@@ -65,15 +53,32 @@ const EventDetails = () => {
         fetchEventDetails();
     }, [eventId, user]);
 
-    const totalAvailable = useMemo(() => {
-        if (!event) return 0;
-        if (event.ticketTypes?.length > 0) {
-            return event.ticketTypes.reduce((sum, t) => sum + (t.remaining || 0), 0);
-        }
-        return event.remainingTickets || 0;
+    const totalAvailable = useMemo(() => (event ? getAvailableTickets(event) : 0), [event]);
+    const isSoldOut = totalAvailable === 0;
+
+    const tiers = useMemo(() => {
+        if (!event) return [];
+        if (event.ticketTypes?.length > 0) return event.ticketTypes;
+        return [
+            {
+                type: 'general',
+                price: event.ticketPrice || 0,
+                quantity: event.totalTickets || 0,
+                remaining: event.remainingTickets || 0,
+            },
+        ];
     }, [event]);
 
-    const handleBookNow = () => {
+    const relatedEvents = useMemo(() => {
+        if (!event || !allEvents.length) return [];
+        return allEvents
+            .filter((e) => e._id !== event._id && e.category === event.category)
+            .filter((e) => new Date(e.date) >= new Date())
+            .sort((a, b) => new Date(a.date) - new Date(b.date))
+            .slice(0, 4);
+    }, [event, allEvents]);
+
+    const handleCheckout = (lines) => {
         if (!user) {
             toast.info('Please sign in to book tickets.');
             navigate('/login', { state: { from: { pathname: `/events/${eventId}` } } });
@@ -83,173 +88,202 @@ const EventDetails = () => {
             toast.error('Only standard users can book tickets.');
             return;
         }
-        if (totalAvailable === 0) {
-            toast.error('This event is sold out.');
-            return;
-        }
         if (event.category === 'theater' && event.custom_fields?.seating_rows) {
             setIsModalOpen(true);
+            return;
+        }
+        // Stash the chosen tickets for the booking page (it reads from sessionStorage on load)
+        try {
+            sessionStorage.setItem(`booking-cart-${eventId}`, JSON.stringify(lines));
+        } catch {
+            /* ignore quota errors */
+        }
+        navigate(`/booking/${eventId}`);
+    };
+
+    const handleShare = async () => {
+        const url = window.location.href;
+        if (navigator.share) {
+            try {
+                await navigator.share({ title: event?.title, url });
+            } catch {
+                /* user cancelled */
+            }
         } else {
-            navigate(`/booking/${eventId}`);
+            try {
+                await navigator.clipboard.writeText(url);
+                toast.success('Link copied to clipboard');
+            } catch {
+                toast.info(url);
+            }
         }
     };
 
-    if (loading) return <Loader fullScreen label="Loading event..." />;
+    if (loading) return <Loader fullScreen label="Loading event…" />;
 
     if (error) {
         return (
-            <div className="container mx-auto max-w-3xl px-4 py-16 text-center">
+            <div className="container-page py-16 text-center">
                 <p className="text-2xl font-bold text-slate-900 mb-2">Couldn't load event</p>
                 <p className="text-slate-600 mb-6">{error}</p>
                 <button onClick={() => navigate(-1)} className="btn btn-primary btn-sm">
-                    ← Go back
+                    <ArrowLeft size={16} /> Go back
                 </button>
             </div>
         );
     }
 
-    if (!event) {
-        return (
-            <div className="container mx-auto max-w-3xl px-4 py-16 text-center">
-                <p className="text-2xl font-bold text-slate-900">Event not found</p>
-            </div>
-        );
-    }
-
-    const isSoldOut = totalAvailable === 0;
+    if (!event) return null;
 
     return (
-        <div className="container mx-auto max-w-5xl px-4 py-8">
-            <button
-                onClick={() => navigate(-1)}
-                className="inline-flex items-center gap-2 text-slate-600 hover:text-indigo-600 font-medium mb-4"
-            >
-                <ArrowLeft size={18} /> Back
-            </button>
+        <div className="bg-surface-200/40 pb-16">
+            {/* Hero with blurred backdrop */}
+            <div className="relative overflow-hidden">
+                {event.image && (
+                    <div
+                        className="absolute inset-0 bg-cover bg-center"
+                        style={{ backgroundImage: `url(${event.image})`, filter: 'blur(40px)', transform: 'scale(1.1)' }}
+                        aria-hidden="true"
+                    />
+                )}
+                <div className="absolute inset-0 bg-navy-700/85" aria-hidden="true" />
 
-            <article className="overflow-hidden rounded-3xl bg-white shadow-xl border border-slate-200">
-                {/* Hero image */}
-                <div className="relative h-72 sm:h-96 bg-slate-900">
-                    {event.image ? (
-                        <img src={event.image} alt={event.title} className="h-full w-full object-cover" />
-                    ) : (
-                        <div className="h-full w-full flex items-center justify-center text-slate-500">
-                            No image provided
-                        </div>
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/95 via-slate-900/40 to-transparent" />
-                    <div className="absolute bottom-0 left-0 p-6 sm:p-8 text-white">
-                        {event.category && (
-                            <span className="inline-block bg-white/20 backdrop-blur px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide mb-3">
-                                {event.category}
-                            </span>
-                        )}
-                        <h1 className="text-3xl sm:text-5xl font-bold">{event.title}</h1>
-                    </div>
-                </div>
+                <div className="relative container-page py-8 sm:py-12">
+                    <button
+                        onClick={() => navigate(-1)}
+                        className="inline-flex items-center gap-2 text-white/80 hover:text-white text-sm font-medium mb-6"
+                    >
+                        <ArrowLeft size={16} /> Back
+                    </button>
 
-                <div className="grid lg:grid-cols-3 gap-0">
-                    {/* Main */}
-                    <div className="lg:col-span-2 p-6 sm:p-8 space-y-6 border-b lg:border-b-0 lg:border-r border-slate-200">
-                        <p className="text-slate-700 leading-relaxed whitespace-pre-line">{event.description}</p>
-
-                        <div className="grid sm:grid-cols-2 gap-4">
-                            <Detail icon={<Calendar size={18} />} label="When" value={formatDateTime(event.date)} />
-                            <Detail icon={<MapPin size={18} />} label="Where" value={event.location} />
-                            {event.organizer?.name && (
-                                <Detail icon={<Users size={18} />} label="Organizer" value={event.organizer.name} />
+                    <div className="grid lg:grid-cols-[300px,1fr] xl:grid-cols-[360px,1fr] gap-6 sm:gap-10 items-start">
+                        {/* Poster */}
+                        <div className="rounded-2xl overflow-hidden shadow-card-hover bg-slate-300 aspect-[3/4] sm:aspect-[4/5] lg:aspect-[3/4] mx-auto w-full max-w-xs lg:max-w-none">
+                            {event.image ? (
+                                <img src={event.image} alt={event.title} className="w-full h-full object-cover" />
+                            ) : (
+                                <div className="w-full h-full flex items-center justify-center text-slate-500 bg-surface-200">
+                                    <Calendar size={64} strokeWidth={1.5} />
+                                </div>
                             )}
-                            <Detail icon={<Tag size={18} />} label="Category" value={event.category || 'general'} />
                         </div>
 
-                        {/* Custom fields */}
-                        {event.custom_fields && Object.keys(event.custom_fields).length > 0 && (
-                            <div className="rounded-2xl bg-slate-50 p-5">
-                                <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500 mb-3">Additional details</h3>
-                                <div className="space-y-2">
-                                    {Object.entries(event.custom_fields)
-                                        .filter(([, v]) => v && (!Array.isArray(v) || v.length > 0))
-                                        .map(([key, value]) => (
-                                            <div key={key} className="flex items-start gap-3">
-                                                <span className="text-slate-700 font-semibold capitalize min-w-[140px]">
-                                                    {key.replace(/_/g, ' ')}:
-                                                </span>
-                                                <span className="text-slate-600 flex-1">{formatCustomValue(value)}</span>
-                                            </div>
-                                        ))}
+                        {/* Title block */}
+                        <div className="text-white">
+                            {event.category && (
+                                <span className="inline-block bg-primary-500 text-white text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full mb-3">
+                                    {event.category}
+                                </span>
+                            )}
+                            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold leading-tight mb-4">
+                                {event.title}
+                            </h1>
+
+                            <div className="space-y-2 text-white/90">
+                                <div className="flex items-center gap-2">
+                                    <Calendar size={18} className="text-primary-300" />
+                                    <span className="text-base font-medium">{formatDateTime(event.date)}</span>
                                 </div>
+                                <div className="flex items-center gap-2">
+                                    <MapPin size={18} className="text-primary-300" />
+                                    <span className="text-base font-medium">{event.location}</span>
+                                </div>
+                                {event.organizer?.name && (
+                                    <div className="flex items-center gap-2">
+                                        <Users size={18} className="text-primary-300" />
+                                        <span className="text-base font-medium">By {event.organizer.name}</span>
+                                    </div>
+                                )}
                             </div>
-                        )}
+
+                            <div className="flex gap-2 mt-6">
+                                <button onClick={handleShare} className="btn btn-outline btn-sm bg-white/10 border-white/30 text-white hover:bg-white/20 hover:border-white/50">
+                                    <Share2 size={14} /> Share
+                                </button>
+                                <button className="btn btn-outline btn-sm bg-white/10 border-white/30 text-white hover:bg-white/20 hover:border-white/50">
+                                    <Heart size={14} /> Save
+                                </button>
+                            </div>
+                        </div>
                     </div>
-
-                    {/* Sidebar: pricing + book CTA */}
-                    <aside className="p-6 sm:p-8 bg-slate-50/50 space-y-5">
-                        <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                            <TicketIcon size={18} /> Tickets
-                        </h3>
-
-                        {event.ticketTypes?.length > 0 ? (
-                            <div className="space-y-3">
-                                {event.ticketTypes.map((tier) => {
-                                    const badge = availabilityBadge(tier.remaining, tier.quantity);
-                                    return (
-                                        <div key={tier.type} className="rounded-xl border border-slate-200 bg-white p-4">
-                                            <div className="flex items-baseline justify-between">
-                                                <span className="font-bold text-slate-900 capitalize">{tier.type}</span>
-                                                <span className="text-lg font-bold text-indigo-600">
-                                                    ${tier.price}
-                                                </span>
-                                            </div>
-                                            <span
-                                                className={`mt-2 inline-block px-2 py-1 rounded-full text-xs font-semibold border ${badge.className}`}
-                                            >
-                                                {badge.label}
-                                            </span>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        ) : (
-                            <div className="rounded-xl border border-slate-200 bg-white p-4">
-                                <div className="flex items-baseline justify-between">
-                                    <span className="font-bold text-slate-900">General admission</span>
-                                    <span className="text-lg font-bold text-indigo-600">
-                                        ${event.ticketPrice || 0}
-                                    </span>
-                                </div>
-                                {(() => {
-                                    const badge = availabilityBadge(event.remainingTickets || 0, event.totalTickets || 0);
-                                    return (
-                                        <span
-                                            className={`mt-2 inline-block px-2 py-1 rounded-full text-xs font-semibold border ${badge.className}`}
-                                        >
-                                            {badge.label}
-                                        </span>
-                                    );
-                                })()}
-                            </div>
-                        )}
-
-                        <button
-                            onClick={handleBookNow}
-                            disabled={isSoldOut}
-                            className="btn btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {isSoldOut
-                                ? 'Sold out'
-                                : event.category === 'theater' && event.custom_fields?.seating_rows
-                                ? 'Select seats'
-                                : 'Book now'}
-                        </button>
-
-                        {!user && (
-                            <p className="text-xs text-slate-500 text-center">
-                                You'll need to sign in to complete a booking.
-                            </p>
-                        )}
-                    </aside>
                 </div>
-            </article>
+            </div>
+
+            {/* Body */}
+            <div className="container-page mt-8 grid lg:grid-cols-[1fr,400px] gap-8 items-start">
+                {/* Left column */}
+                <div className="space-y-6">
+                    <article className="card">
+                        <h2 className="text-xl font-bold text-navy-600 mb-3">About this event</h2>
+                        <p className="text-slate-700 leading-relaxed whitespace-pre-line">{event.description}</p>
+                    </article>
+
+                    {/* Custom fields */}
+                    {event.custom_fields && Object.keys(event.custom_fields).filter((k) => {
+                        const v = event.custom_fields[k];
+                        return v && (!Array.isArray(v) || v.length > 0);
+                    }).length > 0 && (
+                        <article className="card">
+                            <h2 className="text-xl font-bold text-navy-600 mb-3 flex items-center gap-2">
+                                <Tag size={18} /> Details
+                            </h2>
+                            <dl className="grid sm:grid-cols-2 gap-3">
+                                {Object.entries(event.custom_fields)
+                                    .filter(([, v]) => v && (!Array.isArray(v) || v.length > 0))
+                                    .map(([key, value]) => (
+                                        <div key={key} className="rounded-lg bg-surface-200/60 p-3">
+                                            <dt className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1 capitalize">
+                                                {key.replace(/_/g, ' ')}
+                                            </dt>
+                                            <dd className="text-sm text-slate-900 font-medium">{formatCustomValue(value)}</dd>
+                                        </div>
+                                    ))}
+                            </dl>
+                        </article>
+                    )}
+
+                    {/* Organizer block */}
+                    {event.organizer?.name && (
+                        <article className="card">
+                            <h2 className="text-xl font-bold text-navy-600 mb-3">Organiser</h2>
+                            <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center font-bold text-lg">
+                                    {event.organizer.name.charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                    <p className="font-semibold text-slate-900">{event.organizer.name}</p>
+                                    <p className="text-xs text-slate-500">Verified organiser</p>
+                                </div>
+                            </div>
+                        </article>
+                    )}
+
+                    {/* Related events */}
+                    {relatedEvents.length > 0 && (
+                        <section>
+                            <h2 className="text-xl font-bold text-navy-600 mb-4">You may also like</h2>
+                            <div className="grid sm:grid-cols-2 gap-4">
+                                {relatedEvents.map((rel) => (
+                                    <EventCard key={rel._id} event={rel} />
+                                ))}
+                            </div>
+                        </section>
+                    )}
+                </div>
+
+                {/* Right column — sticky on desktop */}
+                <aside className="lg:block">
+                    <TicketSelectionPanel
+                        tiers={tiers}
+                        isSoldOut={isSoldOut}
+                        ctaLabel={
+                            event.category === 'theater' && event.custom_fields?.seating_rows ? 'Pick seats' : 'Continue to checkout'
+                        }
+                        onCheckout={handleCheckout}
+                        footnote={!user ? 'You\'ll sign in on the next step.' : null}
+                    />
+                </aside>
+            </div>
 
             {event.category === 'theater' && event.custom_fields?.seating_rows && (
                 <SeatSelectionModal
@@ -262,16 +296,6 @@ const EventDetails = () => {
         </div>
     );
 };
-
-const Detail = ({ icon, label, value }) => (
-    <div className="rounded-xl border border-slate-200 bg-white p-4">
-        <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-wide">
-            {icon}
-            {label}
-        </div>
-        <p className="mt-2 text-slate-900 font-semibold">{value}</p>
-    </div>
-);
 
 const formatCustomValue = (val) => {
     if (Array.isArray(val)) {
