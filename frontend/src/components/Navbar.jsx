@@ -39,18 +39,25 @@ const Navbar = () => {
     };
 
     const baseLinks = [
-        { to: '/', label: 'Events', exact: true },
+        // "Events" should also light up on event detail and booking pages, since the user is still browsing.
+        { to: '/', label: 'Events', exact: true, activePrefixes: ['/events', '/booking'] },
         { to: '/outlets', label: 'Outlets' },
         { to: '/saved', label: 'Saved' },
         { to: '/contact', label: 'Contact & Support' },
     ];
+
+    const isLinkActive = (link, isActiveFromNavLink) => {
+        if (isActiveFromNavLink) return true;
+        const prefixes = link.activePrefixes || [];
+        return prefixes.some((p) => location.pathname === p || location.pathname.startsWith(p + '/'));
+    };
 
     const roleLinks = !user
         ? []
         : {
               'Standard User': [{ to: '/bookings', label: 'My Bookings' }],
               Organizer: [
-                  { to: '/my-events', label: 'My Events' },
+                  { to: '/my-events', label: 'My Events', exact: true },
                   { to: '/my-events/analytics', label: 'Analytics' },
               ],
               'System Admin': [
@@ -85,7 +92,7 @@ const Navbar = () => {
                                     end={link.exact}
                                     className={({ isActive }) =>
                                         `relative text-sm font-medium transition-colors ${
-                                            isActive
+                                            isLinkActive(link, isActive)
                                                 ? 'text-primary-600'
                                                 : 'text-slate-700 hover:text-primary-600'
                                         }`
@@ -94,7 +101,7 @@ const Navbar = () => {
                                     {({ isActive }) => (
                                         <>
                                             {link.label}
-                                            {isActive && (
+                                            {isLinkActive(link, isActive) && (
                                                 <span className="absolute -bottom-[22px] left-0 right-0 h-0.5 rounded-full bg-primary-500" />
                                             )}
                                         </>
@@ -184,7 +191,7 @@ const Navbar = () => {
                                     end={link.exact}
                                     className={({ isActive }) =>
                                         `block px-3 py-2 rounded-lg text-base font-medium ${
-                                            isActive
+                                            isLinkActive(link, isActive)
                                                 ? 'bg-primary-50 text-primary-700'
                                                 : 'text-slate-700 hover:bg-slate-50'
                                         }`
