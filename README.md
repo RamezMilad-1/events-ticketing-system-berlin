@@ -191,19 +191,15 @@ Register a Standard User or Organiser from the sign-up form to try the other rol
 
 ### Backend (`backend/.env`)
 
-| Variable | Description | Default |
+The three you actually need to know about:
+
+| Variable | What it is | Default |
 |---|---|---|
-| `PORT` | API port | `3000` |
-| `MONGO_URI` | Mongo connection string | `mongodb://localhost:27017/EventBooking` |
-| `JWT_SECRET` | JWT signing secret (long random string) | _required in production_ |
-| `CORS_ORIGINS` | Comma-separated allowed frontend origins | `http://localhost:5173,http://localhost:5174` |
-| `EMAIL_HOST` | SMTP host (leave empty to log OTPs to console in dev) | _empty_ |
-| `EMAIL_PORT` | SMTP port | `587` |
-| `EMAIL_USER` / `EMAIL_PASS` | SMTP credentials | _empty_ |
-| `EMAIL_FROM` | "From" header for OTP emails | `eventHub <no-reply@eventhub.local>` |
-| `OTP_TTL_MINUTES` | OTP validity window | `10` |
-| `OTP_MAX_ATTEMPTS` | Max bad attempts before lockout | `5` |
-| `NODE_ENV` | `development` or `production` | `development` |
+| `PORT` | Port the API runs on | `3000` |
+| `MONGO_URI` | Where to connect to MongoDB | `mongodb://localhost:27017/EventBooking` |
+| `JWT_SECRET` | Random string used to sign session tokens | set anything for local dev |
+
+Email, CORS, and OTP timing settings have working defaults in [`backend/.env.example`](backend/.env.example) — leave them alone for local dev.
 
 ### Frontend (`frontend/.env`)
 
