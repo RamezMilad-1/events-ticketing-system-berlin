@@ -222,7 +222,7 @@ export default function ForgotPassword({ embedded = false, onSuccess, onSwitchTo
                 <Link to="/" className="flex items-center justify-center gap-2 mb-6 hover:opacity-90 transition">
                     <LogoMark size={40} />
                     <span className="text-2xl font-extrabold tracking-tight leading-none text-navy-600">
-                        Early<span className="text-primary-500">Hub</span>
+                        event<span className="text-primary-500">Hub</span>
                     </span>
                 </Link>
 

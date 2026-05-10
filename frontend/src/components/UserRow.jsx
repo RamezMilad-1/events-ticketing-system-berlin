@@ -18,7 +18,7 @@ const UserRow = ({
     searchQuery,
 }) => {
     const { user: currentUser } = useAuth();
-    const isCurrentUser = currentUser._id === user._id;
+    const isCurrentUser = currentUser?._id && currentUser._id === user._id;
 
     return (
         <>

@@ -13,7 +13,7 @@ const CATEGORY_TILES = [
         label: 'Nightlife',
         icon: Sparkles,
         gradient: 'from-violet-600 via-fuchsia-600 to-pink-500',
-        image: 'https://images.unsplash.com/photo-1571266028243-d220c6a7d3a6?w=600&q=70&auto=format&fit=crop',
+        image: 'https://images.unsplash.com/photo-1493676304819-0d7a8d026dcf?w=600&q=70&auto=format&fit=crop',
     },
     {
         key: 'theater',

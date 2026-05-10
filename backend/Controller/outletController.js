@@ -1,5 +1,30 @@
 const Outlet = require('../Model/OutletSchema');
 
+const ALLOWED_FIELDS = [
+    'name',
+    'address',
+    'city',
+    'country',
+    'phone',
+    'email',
+    'workingHours',
+    'paymentMethods',
+    'lat',
+    'lng',
+    'image',
+    'active',
+];
+
+function pickAllowed(body) {
+    const out = {};
+    for (const key of ALLOWED_FIELDS) {
+        if (Object.prototype.hasOwnProperty.call(body || {}, key)) {
+            out[key] = body[key];
+        }
+    }
+    return out;
+}
+
 exports.listOutlets = async (req, res, next) => {
     try {
         const filter = req.user?.role === 'System Admin' ? {} : { active: true };
@@ -25,7 +50,7 @@ exports.getOutletById = async (req, res, next) => {
 
 exports.createOutlet = async (req, res, next) => {
     try {
-        const outlet = await Outlet.create(req.body);
+        const outlet = await Outlet.create(pickAllowed(req.body));
         res.status(201).json({ success: true, data: outlet });
     } catch (err) {
         next(err);
@@ -34,7 +59,7 @@ exports.createOutlet = async (req, res, next) => {
 
 exports.updateOutlet = async (req, res, next) => {
     try {
-        const outlet = await Outlet.findByIdAndUpdate(req.params.id, req.body, {
+        const outlet = await Outlet.findByIdAndUpdate(req.params.id, pickAllowed(req.body), {
             new: true,
             runValidators: true,
         });

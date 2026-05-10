@@ -1,6 +1,6 @@
 /**
- * EarlyHub bird mark — navy outline with a coral wing swoosh and beak.
- * The full lockup ("EarlyHub" wordmark) splits "Early" navy / "Hub" coral.
+ * eventHub bird mark — navy outline with a coral wing swoosh and beak.
+ * The full lockup ("eventHub" wordmark) splits "event" navy / "Hub" coral.
  */
 
 export const LogoMark = ({ size = 32, className = '' }) => (
@@ -45,7 +45,7 @@ const Logo = ({ size = 32, withWordmark = true, className = '' }) => (
                 className="font-bold tracking-tight text-navy-600 leading-none"
                 style={{ fontSize: Math.round(size * 0.7) }}
             >
-                Early<span className="text-primary-500">Hub</span>
+                event<span className="text-primary-500">Hub</span>
             </span>
         )}
     </span>

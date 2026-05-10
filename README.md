@@ -1,4 +1,4 @@
-# EarlyHub — Berlin events ticketing platform
+# eventHub — Berlin events ticketing platform
 
 A full-stack MERN application that lets visitors discover concerts, theatre, sports, nightlife, and conferences in Berlin and book tickets in seconds. The interface is modelled on `ticketsmarche.com` — a clean, poster-wall layout with a single coral accent on a navy + white foundation. The platform supports three user roles (Standard User, Organizer, System Admin), JWT-in-cookie authentication with OTP password recovery, multi-tier tickets, theatre seat selection, an outlets/box-office directory, and a complete admin dashboard.
 
@@ -132,7 +132,7 @@ Frontend listens on **http://localhost:5173**.
 | `EMAIL_HOST` | SMTP host (leave empty to log OTPs to console in dev) | _empty_ |
 | `EMAIL_PORT` | SMTP port | `587` |
 | `EMAIL_USER` / `EMAIL_PASS` | SMTP credentials (Gmail App Password works) | _empty_ |
-| `EMAIL_FROM` | "From" header for OTP emails | `EarlyHub <no-reply@earlyhub.local>` |
+| `EMAIL_FROM` | "From" header for OTP emails | `eventHub <no-reply@eventhub.local>` |
 | `OTP_TTL_MINUTES` | OTP validity window | `10` |
 | `OTP_MAX_ATTEMPTS` | Max bad attempts before lockout | `5` |
 | `NODE_ENV` | `development` or `production` | `development` |

@@ -1,6 +1,13 @@
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = () => process.env.JWT_SECRET || 'unsafe-dev-fallback';
+const JWT_SECRET = () => {
+    const secret = process.env.JWT_SECRET;
+    if (secret) return secret;
+    if (process.env.NODE_ENV === 'production') {
+        throw new Error('JWT_SECRET must be set in production');
+    }
+    return 'unsafe-dev-fallback';
+};
 
 function authenticationMiddleware(req, res, next) {
     const token = req.cookies?.token;

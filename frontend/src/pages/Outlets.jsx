@@ -1,16 +1,17 @@
 import { useEffect, useState } from 'react';
-import { MapPin, Clock, Phone, CreditCard } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { MapPin, Clock, Phone, CreditCard, Banknote, Info, Plus, Settings } from 'lucide-react';
 import { outletService } from '../services/api';
+import { useAuth } from '../auth/AuthContext';
 import Loader from '../components/ui/Loader';
 import EmptyState from '../components/ui/EmptyState';
 
-// Mirror of the reference site's outlets page — physical box-office locations.
-// On a fresh install the backend collection is empty, so we fall back to a curated
-// Berlin demo set so the page never looks unfinished.
+// Demo set used as a placeholder so the page never looks empty for first-time visitors.
+// Once an admin adds real outlets via /admin/outlets, the live data takes over.
 const DEMO_OUTLETS = [
     {
         _id: 'demo-mitte',
-        name: 'EarlyHub Mitte',
+        name: 'eventHub Mitte',
         address: 'Friedrichstraße 200',
         city: 'Berlin',
         country: 'Germany',
@@ -22,7 +23,7 @@ const DEMO_OUTLETS = [
     },
     {
         _id: 'demo-kreuzberg',
-        name: 'EarlyHub Kreuzberg',
+        name: 'eventHub Kreuzberg',
         address: 'Oranienstraße 45',
         city: 'Berlin',
         country: 'Germany',
@@ -34,7 +35,7 @@ const DEMO_OUTLETS = [
     },
     {
         _id: 'demo-prenzlauer',
-        name: 'EarlyHub Prenzlauer Berg',
+        name: 'eventHub Prenzlauer Berg',
         address: 'Kastanienallee 18',
         city: 'Berlin',
         country: 'Germany',
@@ -46,7 +47,7 @@ const DEMO_OUTLETS = [
     },
     {
         _id: 'demo-charlottenburg',
-        name: 'EarlyHub Charlottenburg',
+        name: 'eventHub Charlottenburg',
         address: 'Kurfürstendamm 234',
         city: 'Berlin',
         country: 'Germany',
@@ -58,7 +59,7 @@ const DEMO_OUTLETS = [
     },
     {
         _id: 'demo-friedrichshain',
-        name: 'EarlyHub Friedrichshain',
+        name: 'eventHub Friedrichshain',
         address: 'Warschauer Straße 70',
         city: 'Berlin',
         country: 'Germany',
@@ -70,7 +71,7 @@ const DEMO_OUTLETS = [
     },
     {
         _id: 'demo-tempelhof',
-        name: 'EarlyHub Tempelhof',
+        name: 'eventHub Tempelhof',
         address: 'Tempelhofer Damm 165',
         city: 'Berlin',
         country: 'Germany',
@@ -92,7 +93,11 @@ const PAYMENT_LABELS = {
 };
 
 const Outlets = () => {
+    const { user } = useAuth() || {};
+    const isAdmin = user?.role === 'System Admin';
+
     const [outlets, setOutlets] = useState([]);
+    const [showingDemo, setShowingDemo] = useState(false);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -100,9 +105,16 @@ const Outlets = () => {
             try {
                 const { data } = await outletService.list();
                 const list = data?.data || data || [];
-                setOutlets(list.length > 0 ? list : DEMO_OUTLETS);
+                if (list.length > 0) {
+                    setOutlets(list);
+                    setShowingDemo(false);
+                } else {
+                    setOutlets(DEMO_OUTLETS);
+                    setShowingDemo(true);
+                }
             } catch {
                 setOutlets(DEMO_OUTLETS);
+                setShowingDemo(true);
             } finally {
                 setLoading(false);
             }
@@ -119,12 +131,57 @@ const Outlets = () => {
                 <div className="container-page py-12 sm:py-16">
                     <h1 className="text-3xl sm:text-4xl font-extrabold mb-3">Our outlets</h1>
                     <p className="max-w-2xl text-white/85">
-                        Visit any of our box offices in Berlin to buy tickets in person — cash welcome. We're open daily and our staff can help you find the perfect event.
+                        Outlets are eventHub's physical box-office locations across Berlin where you can buy tickets in person and pay cash. No online booking needed — just walk in, browse what's on, and our staff will print your ticket on the spot.
                     </p>
                 </div>
             </div>
 
-            <section className="container-page py-10">
+            {/* Why visit an outlet — quick value blurb */}
+            <section className="container-page pt-8">
+                <div className="grid sm:grid-cols-3 gap-3">
+                    <Benefit
+                        icon={<Banknote size={18} />}
+                        title="Cash welcome"
+                        text="Pay with cash, card, or contactless — no online checkout required."
+                    />
+                    <Benefit
+                        icon={<Info size={18} />}
+                        title="Real human help"
+                        text="Our staff can recommend events, explain seating, and handle group bookings."
+                    />
+                    <Benefit
+                        icon={<MapPin size={18} />}
+                        title="Across Berlin"
+                        text="Six locations from Mitte to Tempelhof — find one near you."
+                    />
+                </div>
+            </section>
+
+            {/* Admin banner — only visible to admins */}
+            {isAdmin && (
+                <section className="container-page pt-6">
+                    <div className="rounded-2xl border border-primary-100 bg-primary-50 p-4 sm:p-5 flex items-start gap-3 flex-wrap sm:flex-nowrap">
+                        <Settings size={20} className="text-primary-600 mt-0.5 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-navy-700">
+                                {showingDemo
+                                    ? 'You\'re seeing demo outlets — no real outlets exist yet.'
+                                    : 'You\'re managing real outlets.'}
+                            </p>
+                            <p className="text-sm text-slate-700 mt-0.5">
+                                {showingDemo
+                                    ? 'Demo data is shown to visitors when the outlets list is empty. Add a real outlet to replace the demos with your own locations.'
+                                    : 'Add new locations, edit details, or temporarily hide an outlet from customers.'}
+                            </p>
+                        </div>
+                        <Link to="/admin/outlets" className="btn btn-primary shrink-0">
+                            <Plus size={16} /> Manage outlets
+                        </Link>
+                    </div>
+                </section>
+            )}
+
+            <section className="container-page py-8 sm:py-10">
                 {outlets.length === 0 ? (
                     <EmptyState
                         icon="📍"
@@ -142,6 +199,18 @@ const Outlets = () => {
         </div>
     );
 };
+
+const Benefit = ({ icon, title, text }) => (
+    <div className="rounded-xl bg-white border border-slate-100 p-4 flex gap-3 items-start">
+        <div className="w-9 h-9 rounded-lg bg-primary-50 text-primary-600 flex items-center justify-center shrink-0">
+            {icon}
+        </div>
+        <div>
+            <p className="font-bold text-navy-600 text-sm">{title}</p>
+            <p className="text-sm text-slate-600 mt-0.5">{text}</p>
+        </div>
+    </div>
+);
 
 const OutletCard = ({ outlet }) => (
     <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card hover:shadow-card-hover transition">

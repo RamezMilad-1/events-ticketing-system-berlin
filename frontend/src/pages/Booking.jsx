@@ -339,7 +339,7 @@ const Booking = () => {
                                         className="mt-0.5 h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
                                     />
                                     <span>
-                                        I agree to the <a href="#" className="text-primary-600 hover:underline">terms</a> and acknowledge that EarlyHub does not store my card details.
+                                        I agree to the <a href="#" className="text-primary-600 hover:underline">terms</a> and acknowledge that eventHub does not store my card details.
                                     </span>
                                 </label>
 

@@ -36,7 +36,7 @@ const Footer = () => {
                         <Link to="/" className="flex items-center gap-2">
                             <LogoMark size={36} />
                             <span className="text-xl font-extrabold tracking-tight leading-none text-navy-600">
-                                Early<span className="text-primary-500">Hub</span>
+                                event<span className="text-primary-500">Hub</span>
                             </span>
                         </Link>
                         <p className="text-sm text-slate-600 mt-4 leading-relaxed max-w-xs">
@@ -90,11 +90,11 @@ const Footer = () => {
                         <ul className="space-y-2.5 text-sm">
                             <li className="flex items-start gap-2 text-slate-600">
                                 <Mail size={15} className="mt-0.5 text-slate-400 shrink-0" />
-                                <a href="mailto:hello@earlyhub.com" className="hover:text-primary-600 transition break-all">hello@earlyhub.com</a>
+                                <a href="mailto:ramezmilad19@gmail.com" className="hover:text-primary-600 transition break-all">ramezmilad19@gmail.com</a>
                             </li>
                             <li className="flex items-start gap-2 text-slate-600">
                                 <Phone size={15} className="mt-0.5 text-slate-400 shrink-0" />
-                                <a href="tel:+493012345678" className="hover:text-primary-600 transition">+49 30 1234 5678</a>
+                                <a href="tel:01200790271" className="hover:text-primary-600 transition">01200790271</a>
                             </li>
                             <li className="flex items-start gap-2 text-slate-600">
                                 <MapPin size={15} className="mt-0.5 text-slate-400 shrink-0" />
@@ -109,7 +109,7 @@ const Footer = () => {
             <div className="border-t border-slate-200 bg-white">
                 <div className="container-page py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <p className="text-xs text-slate-500">
-                        &copy; {currentYear} EarlyHub. All rights reserved.
+                        &copy; {currentYear} eventHub. All rights reserved.
                     </p>
                     <div className="flex gap-5 text-xs text-slate-500">
                         <a href="#" className="hover:text-primary-600 transition">Privacy</a>

@@ -219,14 +219,14 @@ export default function RegisterForm({ embedded = false, onSuccess, onSwitchToLo
                 <Link to="/" className="flex items-center justify-center gap-2 mb-6 hover:opacity-90 transition">
                     <LogoMark size={40} />
                     <span className="text-2xl font-extrabold tracking-tight leading-none text-navy-600">
-                        Early<span className="text-primary-500">Hub</span>
+                        event<span className="text-primary-500">Hub</span>
                     </span>
                 </Link>
 
                 <div className="card shadow-card-hover">
                     <div className="text-center mb-6">
                         <h1 className="text-2xl font-bold text-slate-900 mb-1">Create your account</h1>
-                        <p className="text-sm text-slate-600">Join thousands of Berliners on EarlyHub</p>
+                        <p className="text-sm text-slate-600">Join thousands of Berliners on eventHub</p>
                     </div>
 
                     {formBody}

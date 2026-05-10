@@ -42,14 +42,13 @@ const ChangePasswordForm = ({ onClose, onSuccess }) => {
         setIsSubmitting(true);
         setSubmitError('');
         try {
-            const response = await userService.changePassword({
+            await userService.changePassword({
                 oldPassword: formData.oldPassword,
                 newPassword: formData.newPassword,
             });
-            if (response.status === 200) {
-                onSuccess();
-                onClose();
-            }
+            // axios resolves only on 2xx, so reaching here means it worked.
+            onSuccess?.();
+            onClose?.();
         } catch (err) {
             setSubmitError(err.response?.data?.message || 'Could not change password. Please try again.');
         } finally {

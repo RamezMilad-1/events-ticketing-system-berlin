@@ -24,9 +24,12 @@ import CreateEvent from './pages/CreateEvent';
 import EventAnalytics from './pages/EventAnalytics';
 import AdminEventsPage from './pages/AdminEventsPage';
 import AdminUsersPage from './pages/AdminUsersPage';
+import AdminOutletsPage from './pages/AdminOutletsPage';
+import AdminContactPage from './pages/AdminContactPage';
 import Outlets from './pages/Outlets';
 import About from './pages/About';
 import Contact from './pages/Contact';
+import SavedEvents from './pages/SavedEvents';
 
 const STANDARD_USER = ['Standard User'];
 const ORGANIZER = ['Organizer'];
@@ -64,6 +67,7 @@ function App() {
                         <Route path="about-us" element={<About />} />
                         <Route path="contact" element={<Contact />} />
                         <Route path="contact-us" element={<Contact />} />
+                        <Route path="saved" element={<SavedEvents />} />
 
                         {/* Profile (any authenticated role) */}
                         <Route
@@ -203,6 +207,22 @@ function App() {
                                 element={
                                     <ProtectedRoute allowedRoles={ADMIN}>
                                         <AdminEventsPage />
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route
+                                path="outlets"
+                                element={
+                                    <ProtectedRoute allowedRoles={ADMIN}>
+                                        <AdminOutletsPage />
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route
+                                path="contact"
+                                element={
+                                    <ProtectedRoute allowedRoles={ADMIN}>
+                                        <AdminContactPage />
                                     </ProtectedRoute>
                                 }
                             />

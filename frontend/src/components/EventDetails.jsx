@@ -1,14 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { ArrowLeft, MapPin, Calendar, Tag, Users, Share2, Heart } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Tag, Users, Share2, Heart, Armchair, ShieldCheck } from 'lucide-react';
 import { eventService, bookingService } from '../services/api';
 import { useAuth } from '../auth/AuthContext';
 import Loader from './ui/Loader';
 import EventCard from './EventCard';
-import SeatSelectionModal from './SeatSelectionModal';
 import TicketSelectionPanel from './TicketSelectionPanel';
-import { formatDateTime, getAvailableTickets } from '../utils/format';
+import { formatDateTime, formatPrice, getAvailableTickets } from '../utils/format';
 
 const EventDetails = () => {
     const { eventId } = useParams();
@@ -19,8 +18,39 @@ const EventDetails = () => {
     const [allEvents, setAllEvents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [bookedSeats, setBookedSeats] = useState([]);
+    const [isSaved, setIsSaved] = useState(false);
+
+    // Sync the "saved" toggle with localStorage so it survives reloads.
+    useEffect(() => {
+        if (!eventId) return;
+        try {
+            const raw = localStorage.getItem('saved-events') || '[]';
+            const list = JSON.parse(raw);
+            setIsSaved(Array.isArray(list) && list.includes(eventId));
+        } catch {
+            setIsSaved(false);
+        }
+    }, [eventId]);
+
+    const toggleSaved = () => {
+        try {
+            const raw = localStorage.getItem('saved-events') || '[]';
+            const list = JSON.parse(raw);
+            const set = new Set(Array.isArray(list) ? list : []);
+            if (set.has(eventId)) {
+                set.delete(eventId);
+                setIsSaved(false);
+                toast.info('Removed from your saved events');
+            } else {
+                set.add(eventId);
+                setIsSaved(true);
+                toast.success('Saved! You can find it in your profile.');
+            }
+            localStorage.setItem('saved-events', JSON.stringify([...set]));
+        } catch {
+            toast.error('Could not save event (storage full?)');
+        }
+    };
 
     useEffect(() => {
         const fetchEventDetails = async () => {
@@ -33,17 +63,8 @@ const EventDetails = () => {
                 setEvent(eventResponse.data);
                 setAllEvents(Array.isArray(allResponse.data) ? allResponse.data : []);
 
-                if (eventResponse.data.category === 'theater' && user) {
-                    try {
-                        const bookingsResponse = await bookingService.getBookingsForEvent(eventId);
-                        const bookedList = bookingsResponse.data
-                            .filter((b) => b.selectedSeats && b.status !== 'canceled')
-                            .flatMap((b) => b.selectedSeats);
-                        setBookedSeats(bookedList);
-                    } catch {
-                        setBookedSeats([]);
-                    }
-                }
+                // No need to pre-fetch bookings here — the /booking/:id page does that
+                // when the user actually starts picking seats.
             } catch (err) {
                 setError(err.response?.data?.message || 'Failed to load event details');
             } finally {
@@ -78,26 +99,34 @@ const EventDetails = () => {
             .slice(0, 4);
     }, [event, allEvents]);
 
-    const handleCheckout = (lines) => {
+    const requireBookingAuth = () => {
         if (!user) {
             toast.info('Please sign in to book tickets.');
             navigate('/login', { state: { from: { pathname: `/events/${eventId}` } } });
-            return;
+            return false;
         }
         if (user.role !== 'Standard User') {
             toast.error('Only standard users can book tickets.');
-            return;
+            return false;
         }
-        if (event.category === 'theater' && event.custom_fields?.seating_rows) {
-            setIsModalOpen(true);
-            return;
-        }
+        return true;
+    };
+
+    const handleCheckout = (lines) => {
+        if (!requireBookingAuth()) return;
         // Stash the chosen tickets for the booking page (it reads from sessionStorage on load)
         try {
             sessionStorage.setItem(`booking-cart-${eventId}`, JSON.stringify(lines));
         } catch {
             /* ignore quota errors */
         }
+        navigate(`/booking/${eventId}`);
+    };
+
+    // Theater events skip the ticket-quantity panel entirely — users go straight to
+    // the seat picker on the booking page, where seats ARE the tickets.
+    const handleSelectSeats = () => {
+        if (!requireBookingAuth()) return;
         navigate(`/booking/${eventId}`);
     };
 
@@ -200,8 +229,15 @@ const EventDetails = () => {
                                 <button onClick={handleShare} className="btn btn-outline btn-sm bg-white/10 border-white/30 text-white hover:bg-white/20 hover:border-white/50">
                                     <Share2 size={14} /> Share
                                 </button>
-                                <button className="btn btn-outline btn-sm bg-white/10 border-white/30 text-white hover:bg-white/20 hover:border-white/50">
-                                    <Heart size={14} /> Save
+                                <button
+                                    onClick={toggleSaved}
+                                    aria-pressed={isSaved}
+                                    className={`btn btn-outline btn-sm border-white/30 hover:bg-white/20 hover:border-white/50 transition ${
+                                        isSaved ? 'bg-primary-500 text-white border-primary-500' : 'bg-white/10 text-white'
+                                    }`}
+                                >
+                                    <Heart size={14} fill={isSaved ? 'currentColor' : 'none'} />
+                                    {isSaved ? 'Saved' : 'Save'}
                                 </button>
                             </div>
                         </div>
@@ -273,26 +309,72 @@ const EventDetails = () => {
 
                 {/* Right column — sticky on desktop */}
                 <aside className="lg:block">
-                    <TicketSelectionPanel
-                        tiers={tiers}
-                        isSoldOut={isSoldOut}
-                        ctaLabel={
-                            event.category === 'theater' && event.custom_fields?.seating_rows ? 'Pick seats' : 'Continue to checkout'
-                        }
-                        onCheckout={handleCheckout}
-                        footnote={!user ? 'You\'ll sign in on the next step.' : null}
-                    />
+                    {event.category === 'theater' && event.custom_fields?.seating_rows ? (
+                        <SeatPickerCard
+                            tiers={tiers}
+                            isSoldOut={isSoldOut}
+                            onSelectSeats={handleSelectSeats}
+                            footnote={!user ? "You'll sign in on the next step." : null}
+                        />
+                    ) : (
+                        <TicketSelectionPanel
+                            tiers={tiers}
+                            isSoldOut={isSoldOut}
+                            ctaLabel="Continue to checkout"
+                            onCheckout={handleCheckout}
+                            footnote={!user ? "You'll sign in on the next step." : null}
+                        />
+                    )}
                 </aside>
             </div>
+        </div>
+    );
+};
 
-            {event.category === 'theater' && event.custom_fields?.seating_rows && (
-                <SeatSelectionModal
-                    event={event}
-                    isOpen={isModalOpen}
-                    onClose={() => setIsModalOpen(false)}
-                    bookedSeats={bookedSeats}
-                />
+// Compact right-rail card for theater events — single-step "Select seats" CTA.
+// Tier prices are shown for reference; seat-to-tier mapping happens on the booking page.
+const SeatPickerCard = ({ tiers = [], isSoldOut, onSelectSeats, footnote }) => {
+    const fromPrice = tiers.length > 0 ? Math.min(...tiers.map((t) => Number(t.price) || 0)) : 0;
+    return (
+        <div className="rounded-2xl border border-slate-200 bg-white shadow-card p-5 sm:p-6 sticky top-24">
+            <div className="flex items-center gap-2 mb-2">
+                <Armchair size={18} className="text-primary-500" />
+                <h3 className="text-base font-bold text-navy-600">Pick your seats</h3>
+            </div>
+            <p className="text-sm text-slate-600 mb-4">
+                Choose any available seat in the auditorium — the price depends on the row. You can pick up to 5 seats per booking.
+            </p>
+
+            {tiers.length > 0 && (
+                <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-3 mb-4 space-y-1.5">
+                    {tiers.map((tier) => (
+                        <div key={tier.type} className="flex items-baseline justify-between text-sm">
+                            <span className="capitalize text-slate-700">{tier.type.replace(/_/g, ' ')}</span>
+                            <span className="font-semibold text-slate-900">{formatPrice(tier.price)}</span>
+                        </div>
+                    ))}
+                </div>
             )}
+
+            <div className="flex items-baseline justify-between mb-3">
+                <span className="text-sm text-slate-500">From</span>
+                <span className="text-2xl font-extrabold text-navy-600">{formatPrice(fromPrice)}</span>
+            </div>
+
+            <button
+                type="button"
+                onClick={onSelectSeats}
+                disabled={isSoldOut}
+                className="btn btn-primary w-full btn-lg"
+            >
+                {isSoldOut ? 'Sold out' : 'Select seats'}
+            </button>
+
+            <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-slate-500">
+                <ShieldCheck size={13} />
+                Secure checkout · Refundable up to 24h before
+            </p>
+            {footnote && <p className="mt-2 text-xs text-center text-slate-500">{footnote}</p>}
         </div>
     );
 };

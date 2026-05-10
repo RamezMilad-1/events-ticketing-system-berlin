@@ -2,6 +2,10 @@ const mongoose = require('mongoose');
 const Booking = require('../Model/BookingSchema');
 const Event = require('../Model/EventSchema');
 
+// Sanity caps to reject absurd payloads before they hit the DB.
+const MAX_TICKETS_PER_BOOKING = 100;
+const MAX_SEATS_PER_BOOKING = 100;
+
 /**
  * Tries to run the work inside a Mongo transaction. If the deployment is a single-node
  * Mongo (no replica set), transactions aren't supported — fall back to a non-transactional
@@ -55,6 +59,12 @@ exports.bookAnEvent = async (req, res) => {
 
         // Seat-conflict check for theater bookings
         if (Array.isArray(selectedSeats) && selectedSeats.length > 0) {
+            if (selectedSeats.length > MAX_SEATS_PER_BOOKING) {
+                return res.status(400).json({
+                    success: false,
+                    message: `You can book at most ${MAX_SEATS_PER_BOOKING} seats per booking.`,
+                });
+            }
             const conflict = await Booking.findOne({
                 event: eventId,
                 status: 'confirmed',
@@ -82,12 +92,26 @@ exports.bookAnEvent = async (req, res) => {
             }
 
             const processed = [];
+            let totalQty = 0;
             for (const booking of ticketBookings) {
                 const { ticketType, quantity } = booking;
                 const qty = Number(quantity);
 
-                if (!ticketType || !qty || qty <= 0) {
+                if (!ticketType || !qty || qty <= 0 || !Number.isInteger(qty)) {
                     return res.status(400).json({ success: false, message: 'Invalid ticket type or quantity.' });
+                }
+                if (qty > MAX_TICKETS_PER_BOOKING) {
+                    return res.status(400).json({
+                        success: false,
+                        message: `You can book at most ${MAX_TICKETS_PER_BOOKING} tickets of one type per booking.`,
+                    });
+                }
+                totalQty += qty;
+                if (totalQty > MAX_TICKETS_PER_BOOKING) {
+                    return res.status(400).json({
+                        success: false,
+                        message: `You can book at most ${MAX_TICKETS_PER_BOOKING} tickets per booking.`,
+                    });
                 }
 
                 const eventTicketType = event.ticketTypes.find((tt) => tt.type === ticketType);
@@ -115,8 +139,14 @@ exports.bookAnEvent = async (req, res) => {
         // --- Legacy single-tier path ---
         } else if (numberOfTickets != null) {
             const qty = Number(numberOfTickets);
-            if (!qty || qty <= 0) {
-                return res.status(400).json({ success: false, message: 'Number of tickets must be at least 1.' });
+            if (!qty || qty <= 0 || !Number.isInteger(qty)) {
+                return res.status(400).json({ success: false, message: 'Number of tickets must be a positive integer.' });
+            }
+            if (qty > MAX_TICKETS_PER_BOOKING) {
+                return res.status(400).json({
+                    success: false,
+                    message: `You can book at most ${MAX_TICKETS_PER_BOOKING} tickets per booking.`,
+                });
             }
             if (event.ticketTypes && event.ticketTypes.length > 0) {
                 return res.status(400).json({
@@ -155,7 +185,7 @@ exports.bookAnEvent = async (req, res) => {
         return res.status(201).json({ success: true, message: 'Booking successful', booking });
     } catch (err) {
         console.error('Booking error:', err);
-        return res.status(500).json({ success: false, message: err.message });
+        return res.status(500).json({ success: false, message: 'Could not complete booking. Please try again.' });
     }
 };
 

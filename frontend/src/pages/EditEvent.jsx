@@ -23,7 +23,13 @@ const EditEvent = () => {
     });
 
     useEffect(() => {
+        if (!eventId) {
+            setError('Missing event id.');
+            setLoading(false);
+            return;
+        }
         fetchEventDetails();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [eventId]);
 
     const fetchEventDetails = async () => {

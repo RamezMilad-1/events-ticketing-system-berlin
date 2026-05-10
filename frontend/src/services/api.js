@@ -98,4 +98,15 @@ export const outletService = {
     remove: (id) => api.delete(`/outlets/${id}`),
 };
 
+// ---------------------------- Contact ---------------------------
+export const contactService = {
+    // Public submission
+    submit: (data) => api.post('/contact', data),
+
+    // Admin
+    list: () => api.get('/contact'),
+    updateStatus: (id, status) => api.patch(`/contact/${id}`, { status }),
+    remove: (id) => api.delete(`/contact/${id}`),
+};
+
 export default api;

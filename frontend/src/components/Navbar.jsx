@@ -41,6 +41,7 @@ const Navbar = () => {
     const baseLinks = [
         { to: '/', label: 'Events', exact: true },
         { to: '/outlets', label: 'Outlets' },
+        { to: '/saved', label: 'Saved' },
         { to: '/contact', label: 'Contact & Support' },
     ];
 
@@ -55,6 +56,8 @@ const Navbar = () => {
               'System Admin': [
                   { to: '/admin/events', label: 'Manage Events' },
                   { to: '/admin/users', label: 'Manage Users' },
+                  { to: '/admin/outlets', label: 'Manage Outlets' },
+                  { to: '/admin/contact', label: 'Support Inbox' },
               ],
           }[user.role] || [];
 
@@ -69,7 +72,7 @@ const Navbar = () => {
                         <Link to="/" className="flex items-center gap-2 hover:opacity-90 transition">
                             <LogoMark size={36} />
                             <span className="text-xl font-extrabold tracking-tight leading-none text-navy-600">
-                                Early<span className="text-primary-500">Hub</span>
+                                event<span className="text-primary-500">Hub</span>
                             </span>
                         </Link>
 

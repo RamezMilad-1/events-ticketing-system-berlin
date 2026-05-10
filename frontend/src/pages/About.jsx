@@ -7,13 +7,13 @@ const About = () => (
         <section className="bg-navy-700 text-white">
             <div className="container-page py-14 sm:py-20">
                 <span className="inline-block bg-primary-500 text-white text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full mb-4">
-                    About EarlyHub
+                    About eventHub
                 </span>
                 <h1 className="text-3xl sm:text-5xl font-extrabold leading-tight max-w-3xl">
                     The easiest way to discover Berlin's best events.
                 </h1>
                 <p className="mt-4 text-white/85 text-lg max-w-2xl">
-                    From sold-out concerts at the Mercedes-Benz Arena to intimate jazz nights in Kreuzberg, EarlyHub puts the city's nightlife, theatre, sport and culture in one place.
+                    From sold-out concerts at the Mercedes-Benz Arena to intimate jazz nights in Kreuzberg, eventHub puts the city's nightlife, theatre, sport and culture in one place.
                 </p>
             </div>
         </section>
@@ -50,7 +50,7 @@ const About = () => (
                 <div>
                     <h2 className="text-2xl sm:text-3xl font-bold text-navy-600 mb-4">Our story</h2>
                     <p className="text-slate-700 leading-relaxed mb-3">
-                        EarlyHub started in 2024 in a Friedrichshain back-room, born from a simple frustration: in a city this rich, finding and booking a great evening shouldn't take twelve browser tabs.
+                        eventHub started in 2024 in a Friedrichshain back-room, born from a simple frustration: in a city this rich, finding and booking a great evening shouldn't take twelve browser tabs.
                     </p>
                     <p className="text-slate-700 leading-relaxed mb-3">
                         We work with hundreds of organisers — from underground techno collectives to philharmonic orchestras — to bring you a single, trustworthy place to discover what's on.

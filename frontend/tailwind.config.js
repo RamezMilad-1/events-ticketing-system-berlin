@@ -20,7 +20,7 @@ export default {
             },
             colors: {
                 // Primary coral — single accent, used for CTAs, focus rings, link hovers.
-                // Sourced from the EarlyHub logo's "Hub" lettering and bird beak.
+                // Sourced from the eventHub logo's "Hub" lettering and bird beak.
                 primary: {
                     50: '#fef0ee',
                     100: '#fde0dc',

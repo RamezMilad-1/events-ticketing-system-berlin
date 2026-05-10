@@ -7,7 +7,14 @@ const Booking = require('../Model/BookingSchema');
 const Event = require('../Model/EventSchema');
 const { sendOtpEmail } = require('../utils/email');
 
-const JWT_SECRET = () => process.env.JWT_SECRET || 'unsafe-dev-fallback';
+const JWT_SECRET = () => {
+    const secret = process.env.JWT_SECRET;
+    if (secret) return secret;
+    if (process.env.NODE_ENV === 'production') {
+        throw new Error('JWT_SECRET must be set in production');
+    }
+    return 'unsafe-dev-fallback';
+};
 const OTP_TTL_MIN = () => Number(process.env.OTP_TTL_MINUTES) || 10;
 const OTP_MAX_ATTEMPTS = () => Number(process.env.OTP_MAX_ATTEMPTS) || 5;
 
@@ -292,7 +299,8 @@ const userController = {
             const users = await userModel.find().select('-password');
             return res.status(200).json({ success: true, users });
         } catch (e) {
-            return res.status(500).json({ success: false, message: e.message });
+            console.error('Error listing users:', e);
+            return res.status(500).json({ success: false, message: 'Server error' });
         }
     },
 

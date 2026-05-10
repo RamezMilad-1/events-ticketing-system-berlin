@@ -4,12 +4,15 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 
 const authRouter = require('./Routes/auth');
 const userRouter = require('./Routes/user');
 const eventRouter = require('./Routes/eventroute');
 const bookingRouter = require('./Routes/bookingroute');
 const outletRouter = require('./Routes/outletroute');
+const contactRouter = require('./Routes/contactroute');
 
 const authenticationMiddleware = require('./Middleware/authenticationMiddleware');
 const { optional: optionalAuthenticationMiddleware } = require('./Middleware/authenticationMiddleware');
@@ -17,7 +20,11 @@ const errorHandler = require('./Middleware/errorHandler');
 
 const app = express();
 
+// Trust the first proxy (e.g. nginx/render/heroku) so secure cookies + rate-limit IPs work in prod.
+app.set('trust proxy', 1);
+
 // --- Middleware ---
+app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(express.json({ limit: '10mb' })); // larger limit for base64 image uploads
 app.use(express.urlencoded({ extended: false, limit: '10mb' }));
 app.use(cookieParser());
@@ -35,13 +42,37 @@ app.use(
     })
 );
 
+// Rate-limit ONLY the brute-forceable auth endpoints (login, register, password reset).
+// Generous enough that legitimate users won't notice; tight enough to stop scripts.
+// IMPORTANT: scoped to specific paths below — must NOT wrap the whole /api/v1 prefix
+// or normal browsing (events list, profile, bookings) gets throttled too.
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 50,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, message: 'Too many login attempts. Please try again in a few minutes.' },
+});
+
 // --- Health check ---
 app.get('/api/v1/health', (req, res) => {
     res.json({ status: 'ok', uptime: process.uptime() });
 });
 
 // --- Routes ---
-// Public auth (login/register/logout/forgetPassword)
+// Apply the auth rate-limiter ONLY to the brute-forceable endpoints.
+// Logout is intentionally not limited (legitimate users should always be able to sign out).
+app.use(
+    [
+        '/api/v1/login',
+        '/api/v1/register',
+        '/api/v1/forgetPassword',
+        '/api/v1/forgotPassword',
+    ],
+    authLimiter
+);
+
+// Public auth router (login/register/logout/forgetPassword/forgotPassword)
 app.use('/api/v1', authRouter);
 
 // Authenticated user routes
@@ -55,6 +86,9 @@ app.use('/api/v1/bookings', authenticationMiddleware, bookingRouter);
 
 // Outlets (box-office locations): public read, admin write
 app.use('/api/v1/outlets', optionalAuthenticationMiddleware, outletRouter);
+
+// Contact messages: public POST, admin GET/PATCH/DELETE
+app.use('/api/v1/contact', contactRouter);
 
 // --- 404 fallback for API ---
 app.use((req, res, next) => {
@@ -72,7 +106,11 @@ const PORT = process.env.PORT || 3000;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/EventBooking';
 
 if (!process.env.JWT_SECRET) {
-    console.warn('[warn] JWT_SECRET is not set in .env — using an unsafe fallback. Configure JWT_SECRET in production.');
+    if (process.env.NODE_ENV === 'production') {
+        console.error('[fatal] JWT_SECRET must be set in production. Refusing to start.');
+        process.exit(1);
+    }
+    console.warn('[warn] JWT_SECRET is not set in .env — using an unsafe fallback. Configure JWT_SECRET before deploying.');
 }
 
 // Fail fast instead of buffering queries when Mongo is unreachable.
@@ -142,4 +180,22 @@ async function backfillTheaterSeating() {
 
 connectDb();
 
-app.listen(PORT, () => console.log(`[server] running on port ${PORT}`));
+const server = app.listen(PORT, () => console.log(`[server] running on port ${PORT}`));
+
+// Crash on truly unrecoverable errors so the process manager (pm2/systemd/render) can restart cleanly.
+process.on('unhandledRejection', (reason) => {
+    console.error('[fatal] Unhandled promise rejection:', reason);
+    server.close(() => process.exit(1));
+});
+
+process.on('uncaughtException', (err) => {
+    console.error('[fatal] Uncaught exception:', err);
+    server.close(() => process.exit(1));
+});
+
+process.on('SIGTERM', () => {
+    console.log('[server] SIGTERM received, shutting down gracefully');
+    server.close(() => {
+        mongoose.connection.close(false).finally(() => process.exit(0));
+    });
+});
