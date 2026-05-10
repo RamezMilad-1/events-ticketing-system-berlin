@@ -12,8 +12,6 @@ Payment processing is not integrated yet — bookings are stored in the database
 
 ### Home
 
-![Home page](docs/screenshots/home.png)
-
 ![Hot events, categories, and featured listings](docs/screenshots/home-discover.png)
 
 ### Event details
