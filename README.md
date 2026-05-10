@@ -14,9 +14,13 @@ Payment processing is not integrated yet — bookings are stored in the database
 
 ![Home page](docs/screenshots/home.png)
 
-Mobile view at 390px wide:
+![Hot events, categories, and featured listings](docs/screenshots/home-discover.png)
 
-![Home page on mobile](docs/screenshots/home-mobile.png)
+### Event details
+
+Each event page shows the description, organiser, date and venue, and a side panel with every ticket tier and a checkout button.
+
+![Event details with ticket tiers and checkout](docs/screenshots/event-details.png)
 
 ### Multi-tier ticket selector
 
