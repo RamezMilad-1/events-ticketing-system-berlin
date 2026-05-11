@@ -113,42 +113,6 @@ Sign in (left) and the OTP-based forgot-password flow (right).
 | Email | Nodemailer (with a dev-mode console fallback) |
 | Tooling | ESLint, Nodemon, dotenv |
 
-## Implementation notes
-
-- **Per-tier inventory.** Each ticket tier tracks its own remaining count, and bookings update those counts in a single database operation so totals stay accurate.
-- **Seat-conflict prevention.** When a user picks seats for a theatre event, the server checks they aren't already taken before saving. Two users clicking "Confirm" at the same time can't end up with the same seat — the second request is rejected.
-- **OTP password reset.** Reset codes are 6 digits, hashed before being stored, expire after 10 minutes, and lock out after 5 wrong attempts.
-- **Client-side image compression.** Profile pictures and event posters are resized and compressed in the browser before upload.
-
-## Project Structure
-
-```
-events-ticketing-system-berlin/
-├── backend/
-│   ├── Controller/         bookingController, eventcontroller, userController, outletController, contactController
-│   ├── Middleware/         authentication, authorization, errorHandler
-│   ├── Model/              UserSchema, EventSchema, BookingSchema, OutletSchema, ContactMessageSchema
-│   ├── Routes/             auth, user, eventroute, bookingroute, outletroute, contactroute
-│   ├── utils/              email (nodemailer), categoryFields
-│   ├── scripts/            seed-test-data.js
-│   ├── app.js
-│   └── .env.example
-├── frontend/
-│   ├── src/
-│   │   ├── auth/           AuthContext, ProtectedRoutes
-│   │   ├── components/     Navbar, Footer, EventCard, EventList, TheaterSeating, TicketSelectionPanel, ...
-│   │   ├── components/ui/  Loader, ConfirmDialog, EmptyState
-│   │   ├── pages/          Home, EventDetails, Booking, MyBookings, MyEvents, EventAnalytics, Admin*, Outlets, ...
-│   │   ├── services/api.js
-│   │   ├── App.jsx
-│   │   └── main.jsx
-│   ├── tailwind.config.js
-│   ├── vite.config.js
-│   └── .env.example
-├── docs/screenshots/
-└── README.md
-```
-
 ## Getting Started
 
 ### Prerequisites
@@ -184,6 +148,42 @@ npm run dev                      # http://localhost:5173
 | System Admin | `admin@eventhub.com` | `Admin@2026` |
 
 Register a Standard User or Organiser from the sign-up form to try the other roles.
+
+## Implementation notes
+
+- **Per-tier inventory.** Each ticket tier tracks its own remaining count, and bookings update those counts in a single database operation so totals stay accurate.
+- **Seat-conflict prevention.** When a user picks seats for a theatre event, the server checks they aren't already taken before saving. Two users clicking "Confirm" at the same time can't end up with the same seat — the second request is rejected.
+- **OTP password reset.** Reset codes are 6 digits, hashed before being stored, expire after 10 minutes, and lock out after 5 wrong attempts.
+- **Client-side image compression.** Profile pictures and event posters are resized and compressed in the browser before upload.
+
+## Project Structure
+
+```
+events-ticketing-system-berlin/
+├── backend/
+│   ├── Controller/         bookingController, eventcontroller, userController, outletController, contactController
+│   ├── Middleware/         authentication, authorization, errorHandler
+│   ├── Model/              UserSchema, EventSchema, BookingSchema, OutletSchema, ContactMessageSchema
+│   ├── Routes/             auth, user, eventroute, bookingroute, outletroute, contactroute
+│   ├── utils/              email (nodemailer), categoryFields
+│   ├── scripts/            seed-test-data.js
+│   ├── app.js
+│   └── .env.example
+├── frontend/
+│   ├── src/
+│   │   ├── auth/           AuthContext, ProtectedRoutes
+│   │   ├── components/     Navbar, Footer, EventCard, EventList, TheaterSeating, TicketSelectionPanel, ...
+│   │   ├── components/ui/  Loader, ConfirmDialog, EmptyState
+│   │   ├── pages/          Home, EventDetails, Booking, MyBookings, MyEvents, EventAnalytics, Admin*, Outlets, ...
+│   │   ├── services/api.js
+│   │   ├── App.jsx
+│   │   └── main.jsx
+│   ├── tailwind.config.js
+│   ├── vite.config.js
+│   └── .env.example
+├── docs/screenshots/
+└── README.md
+```
 
 ## Environment Variables
 
