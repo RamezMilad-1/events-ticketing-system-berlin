@@ -24,8 +24,7 @@ const PUBLIC_ROLES = ['Standard User', 'Organizer']; // roles allowed at registr
 const COOKIE_OPTIONS = () => ({
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',    path: '/',
 });
 
 function isValidEmail(email) {
