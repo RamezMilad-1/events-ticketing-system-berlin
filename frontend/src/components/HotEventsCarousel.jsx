@@ -41,11 +41,11 @@ const HotEventsCarousel = ({ events }) => {
     if (!events?.length) return null;
 
     return (
-        <section className="container-page pt-8 sm:pt-12">
-            <div className="flex items-end justify-between gap-3 mb-5">
+        <section className="container-page pt-6 sm:pt-8">
+            <div className="flex items-end justify-between gap-3 mb-4">
                 <div>
-                    <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">Hot Events</h2>
-                    <p className="text-sm text-slate-500 mt-1">The most popular events happening in Berlin right now.</p>
+                    <h2 className="text-xl sm:text-2xl font-bold text-slate-900">Hot Events</h2>
+                    <p className="text-xs sm:text-sm text-slate-500 mt-0.5">The most popular events happening in Berlin right now.</p>
                 </div>
                 <div className="hidden sm:flex items-center gap-2">
                     <button
@@ -80,7 +80,7 @@ const HotEventsCarousel = ({ events }) => {
                         <Link
                             to={`/events/${event._id}`}
                             key={event._id}
-                            className="snap-start shrink-0 w-[260px] sm:w-[280px] group"
+                            className="snap-start shrink-0 w-[210px] sm:w-[230px] group"
                         >
                             <div className="relative aspect-[3/4] overflow-hidden rounded-2xl bg-slate-200 shadow-card group-hover:shadow-card-hover transition-shadow">
                                 {event.image ? (
@@ -92,29 +92,29 @@ const HotEventsCarousel = ({ events }) => {
                                     />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center text-slate-400">
-                                        <Calendar size={56} strokeWidth={1.5} />
+                                        <Calendar size={48} strokeWidth={1.5} />
                                     </div>
                                 )}
                                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900/95 via-slate-900/40 to-transparent" />
-                                <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
+                                <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
                                     {event.category && (
-                                        <span className="inline-block text-[10px] font-bold uppercase tracking-wider bg-primary-500/90 px-2 py-0.5 rounded-full mb-2">
+                                        <span className="inline-block text-[10px] font-bold uppercase tracking-wider bg-primary-500/90 px-2 py-0.5 rounded-full mb-1.5">
                                             {event.category}
                                         </span>
                                     )}
-                                    <h3 className="font-bold text-base leading-snug line-clamp-2 text-white drop-shadow-md">{event.title}</h3>
-                                    <div className="mt-1.5 flex items-center gap-3 text-xs text-white/90 drop-shadow">
+                                    <h3 className="font-bold text-sm leading-snug line-clamp-2 text-white drop-shadow-md">{event.title}</h3>
+                                    <div className="mt-1 flex items-center gap-2 text-[11px] text-white/90 drop-shadow">
                                         <span className="inline-flex items-center gap-1">
-                                            <Calendar size={12} />
+                                            <Calendar size={11} />
                                             {formatDateShort(event.date)}
                                         </span>
                                         <span className="inline-flex items-center gap-1 truncate">
-                                            <MapPin size={12} />
+                                            <MapPin size={11} />
                                             <span className="truncate">{event.location}</span>
                                         </span>
                                     </div>
                                 </div>
-                                <div className="absolute top-3 right-3 bg-white/95 text-slate-900 text-xs font-bold px-2.5 py-1 rounded-full shadow-sm">
+                                <div className="absolute top-2.5 right-2.5 bg-white/95 text-slate-900 text-[11px] font-bold px-2 py-0.5 rounded-full shadow-sm">
                                     From {formatPrice(minPrice)}
                                 </div>
                             </div>

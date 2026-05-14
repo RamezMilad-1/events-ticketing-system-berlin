@@ -135,6 +135,18 @@ const EventList = () => {
         }, 50);
     };
 
+    const handleVenueSelect = (loc) => {
+        // Same single-filter rule as category: clear everything else, apply the location, scroll down.
+        setSearch('');
+        setDateFrom('');
+        setDateTo('');
+        setSearchParams({ location: loc });
+        setTimeout(() => {
+            const grid = document.getElementById('event-grid');
+            if (grid) grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 50);
+    };
+
     const activeFilterCount =
         (search ? 1 : 0) +
         (category !== 'all' ? 1 : 0) +
@@ -162,11 +174,11 @@ const EventList = () => {
             <CategoryTiles events={events} onSelect={handleCategorySelect} />
 
             {/* All-events listing */}
-            <section id="event-grid" className="container-page py-4 sm:py-6">
-                <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
+            <section id="event-grid" className="container-page py-4 sm:py-6 scroll-mt-4">
+                <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-5">
                     <div>
-                        <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">All events</h2>
-                        <p className="text-sm text-slate-500 mt-1">
+                        <h2 className="text-xl sm:text-2xl font-bold text-slate-900">All events</h2>
+                        <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
                             {filteredEvents.length} {filteredEvents.length === 1 ? 'event' : 'events'}
                             {category !== 'all' && (
                                 <span> · <span className="font-semibold capitalize text-slate-700">{category}</span></span>
@@ -286,7 +298,7 @@ const EventList = () => {
                 )}
 
                 {filteredEvents.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                         {filteredEvents.map((event) => (
                             <div key={event._id} className="animate-slideUp">
                                 <EventCard event={event} />
@@ -314,7 +326,7 @@ const EventList = () => {
             </section>
 
             {/* Venues */}
-            <VenueGrid events={events} />
+            <VenueGrid events={events} onSelect={handleVenueSelect} />
         </div>
     );
 };
