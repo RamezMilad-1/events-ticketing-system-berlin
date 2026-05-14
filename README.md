@@ -13,7 +13,7 @@
 - **Three role-based dashboards** with route-level RBAC: Standard User, Organiser, System Admin.
 - **Atomic seat allocation** for theatre events — two simultaneous bookings can't grab the same seat; the second request is rejected at the database layer.
 - **Multi-tier ticket inventory** — each tier (VIP, Standard, Early Bird, etc.) tracks its own price and remaining count; bookings update counts in a single DB operation to prevent over-selling.
-- **OTP password reset** — 6-digit codes, SHA-256-hashed at rest, 10-minute TTL, 5-attempt lockout, delivered via Gmail SMTP in production.
+- **OTP password reset** — 6-digit codes, SHA-256-hashed at rest, 10-minute TTL, 5-attempt lockout, delivered via Brevo's HTTPS transactional API (chosen over SMTP because Render's free tier blocks outbound SMTP).
 - **Hardened auth surface** — bcrypt (10 rounds), Helmet, CORS allowlist, rate-limited login/register/reset (50 req per 15 min), JWT secret required in production (fail-fast on boot).
 - **Organiser analytics** with Recharts — per-event "% booked" bar chart, sold-vs-remaining donut, aggregate KPIs.
 - **Resilient infrastructure** — Mongoose retry loop on boot, graceful SIGTERM shutdown, fail-fast on unhandled rejections, trust-proxy enabled for Render's edge.
@@ -29,7 +29,7 @@
 | **Backend** | Node.js, Express 4, REST API |
 | **Database** | MongoDB, Mongoose 7 (local + Atlas) |
 | **Auth & security** | JWT (Bearer + httpOnly cookie), bcrypt, Helmet, express-rate-limit, cookie-parser |
-| **Email** | Nodemailer + Gmail SMTP (dev fallback: console log) |
+| **Email** | Brevo transactional API (HTTPS), with console-log fallback for local dev |
 | **Deployment** | Render (web service + static site), MongoDB Atlas |
 | **Tooling** | ESLint, Nodemon, dotenv, Git, GitHub |
 
@@ -104,6 +104,8 @@ These are the engineering decisions worth zooming in on.
 
 **Privacy-preserving password reset.** The `/forgetPassword/request` endpoint returns 200 whether or not the email is registered, preventing user enumeration. OTPs are hashed (SHA-256) before storage; attempts are capped at 5; tokens expire after 10 minutes.
 
+**Email delivery without SMTP.** Render's free tier blocks all outbound SMTP traffic (ports 465 and 587 confirmed unreachable), so a Gmail-via-nodemailer setup hangs every password-reset request for the full 2-minute connection timeout. Solution: send through Brevo's HTTPS transactional API instead. Same OTP flow, same templates, but the request goes over HTTPS and arrives in ~30 seconds. The implementation falls back to a dev console log when no API key is set, so local development needs zero email setup.
+
 **Production resilience.** Mongoose connects with a retry loop (5 attempts, exponential delay). `unhandledRejection` and `uncaughtException` trigger a graceful shutdown so the process manager can restart cleanly. `app.set('trust proxy', 1)` makes secure cookies + rate-limit IP detection work behind Render's edge.
 
 ---
@@ -159,7 +161,7 @@ npm run dev                      # http://localhost:5173
 
 ### Forgot-password locally
 
-By default `EMAIL_HOST` is empty, so the backend logs the OTP to the terminal:
+By default `BREVO_API_KEY` is empty, so the backend logs the OTP to the terminal:
 
 ```
 ========================================
@@ -167,7 +169,7 @@ By default `EMAIL_HOST` is empty, so the backend logs the OTP to the terminal:
 ========================================
 ```
 
-Copy the code into the OTP step. To send real emails locally, fill in the Gmail SMTP vars in `backend/.env`.
+Copy the code into the OTP step. To send real emails locally, set `BREVO_API_KEY` in `backend/.env` (same key used in production).
 
 ---
 
@@ -261,15 +263,12 @@ All routes are mounted under `/api/v1`.
    OTP_TTL_MINUTES=10
    OTP_MAX_ATTEMPTS=5
 
-   # Gmail SMTP for password-reset emails
-   EMAIL_HOST=smtp.gmail.com
-   EMAIL_PORT=465
-   EMAIL_USER=<your-gmail@gmail.com>
-   EMAIL_PASS=<16-char Gmail App Password>
-   EMAIL_FROM=eventHub <your-gmail@gmail.com>
+   # Brevo (transactional email over HTTPS — Render free tier blocks SMTP)
+   BREVO_API_KEY=xkeysib-...
+   EMAIL_FROM=eventHub <your-verified-sender@gmail.com>
    ```
 
-   Gmail App Password: enable 2-Step Verification on the Google account, then *Security → App passwords → Create*. Use the 16-character code in `EMAIL_PASS`, not your account password.
+   **Brevo setup:** sign up at [brevo.com](https://www.brevo.com) (free 300 emails/day, no card). In the dashboard go to *SMTP & API → API Keys → Generate*, copy the `xkeysib-...` value into `BREVO_API_KEY`. Then *Senders → Add a sender*, enter the email used in `EMAIL_FROM`, and verify it via Brevo's confirmation email.
 
 3. **MongoDB Atlas free cluster**
    - Create a database user.
@@ -323,7 +322,7 @@ events-ticketing-system-berlin/
 │   ├── Middleware/     authentication (Bearer + cookie), authorization, errorHandler
 │   ├── Model/          UserSchema, EventSchema, BookingSchema, OutletSchema, ContactMessageSchema
 │   ├── Routes/         auth, user, eventroute, bookingroute, outletroute, contactroute
-│   ├── utils/          email (nodemailer), categoryFields
+│   ├── utils/          email (Brevo HTTPS API), categoryFields
 │   ├── scripts/        seed-test-data.js
 │   └── app.js
 ├── frontend/
