@@ -186,8 +186,8 @@ const EventList = () => {
                         </p>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                        <div className="relative flex-grow sm:flex-grow-0 sm:w-64">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <div className="relative w-full sm:w-64 sm:flex-grow-0">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                             <input
                                 type="text"
@@ -210,7 +210,7 @@ const EventList = () => {
                         <select
                             value={sort}
                             onChange={(e) => setSort(e.target.value)}
-                            className="input py-2 text-sm w-auto"
+                            className="input py-2 text-sm flex-1 sm:flex-none sm:w-auto"
                             aria-label="Sort events"
                         >
                             {SORT_OPTIONS.map((opt) => (
