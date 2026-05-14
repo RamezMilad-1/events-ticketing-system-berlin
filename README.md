@@ -143,11 +143,98 @@ npm run dev                      # http://localhost:5173
 
 ### Test credentials
 
-| Role | Email | Password |
-|---|---|---|
-| System Admin | `admin@eventhub.com` | `Admin@2026` |
+Use these to evaluate the deployed app — they exist on the production database.
 
-Register a Standard User or Organiser from the sign-up form to try the other roles.
+| Role | Name | Email | Password |
+|---|---|---|---|
+| System Admin | eventHub Admin | `admin@eventhub.com` | `Admin@2026` |
+| Organizer | Lukas Schmidt | `organizer@eventhub.com` | `Organizer@2026` |
+
+Register a Standard User from the sign-up form to try the visitor role.
+
+## Deployment
+
+Live deployment uses Render (backend + frontend) and MongoDB Atlas. These are the exact steps used for the current production deploy.
+
+1. **Create a Render Web Service for the backend**
+   - Repo: https://github.com/RamezMilad-1/events-ticketing-system-berlin
+   - Root Directory: `backend`
+   - Build Command: `npm install`
+   - Start Command: `npm start`
+
+2. **Add backend environment variables**
+
+   ```
+   NODE_ENV=production
+   PORT=3000
+   MONGO_URI=mongodb+srv://USERNAME:PASSWORD@CLUSTER.mongodb.net/EventBooking?...
+   JWT_SECRET=<long random string>
+   CORS_ORIGINS=https://events-ticketing-system-berlin-3.onrender.com
+   OTP_TTL_MINUTES=10
+   OTP_MAX_ATTEMPTS=5
+
+   # SMTP for password-reset emails (Gmail with an App Password)
+   EMAIL_HOST=smtp.gmail.com
+   EMAIL_PORT=465
+   EMAIL_USER=<your-gmail@gmail.com>
+   EMAIL_PASS=<16-char Gmail App Password>
+   EMAIL_FROM=eventHub <your-gmail@gmail.com>
+   ```
+
+   Gmail App Password: enable 2-Step Verification on the Google account, then go to *Google Account → Security → App passwords*, generate one for "Mail / Other", and paste the 16-character code into `EMAIL_PASS` (not your regular Gmail password).
+
+3. **Create a MongoDB Atlas free cluster**
+   - Create a database user.
+   - Allow network access from `0.0.0.0/0` (Render's egress IPs aren't fixed on the free tier).
+   - Use the Atlas connection string in `MONGO_URI`. The URI **must** include `/EventBooking` after `.mongodb.net`.
+
+4. **Move local MongoDB data to Atlas**
+
+   ```bash
+   mongodump --uri="mongodb://localhost:27017/EventBooking" --out="$HOME/Desktop/mongo-backup"
+   mongorestore --uri="mongodb+srv://USERNAME:PASSWORD@CLUSTER.mongodb.net/EventBooking?..." "$HOME/Desktop/mongo-backup/EventBooking"
+   ```
+
+5. **Create a Render Static Site for the frontend**
+   - Same repo: https://github.com/RamezMilad-1/events-ticketing-system-berlin
+   - Root Directory: `frontend`
+   - Build Command: `npm install && npm run build`
+   - Publish Directory: `dist`
+
+6. **Add frontend environment variable**
+
+   ```
+   VITE_API_BASE_URL=https://events-ticketing-system-berlin-1.onrender.com/api/v1
+   ```
+
+7. **Fix production auth cookies in `backend/Controller/userController.js`**
+
+   Replace `COOKIE_OPTIONS` with:
+
+   ```js
+   const COOKIE_OPTIONS = () => ({
+       httpOnly: true,
+       secure: process.env.NODE_ENV === 'production',
+       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+       path: '/',
+   });
+   ```
+
+   (Already applied in this repo.)
+
+8. **Commit and push**
+
+   ```bash
+   git add .
+   git commit -m "Fix production auth cookie settings"
+   git push
+   ```
+
+9. **Redeploy backend and frontend on Render.**
+
+### Cross-origin auth
+
+Because the backend and frontend live on different `*.onrender.com` subdomains — and `onrender.com` is on the Public Suffix List — modern browsers treat them as cross-site and often drop third-party cookies. The backend therefore also returns the JWT in the login response body; the frontend stores it in `localStorage` and sends it as `Authorization: Bearer <token>` on every request. The cookie path is kept as a fallback for first-party deployments.
 
 ## Implementation notes
 

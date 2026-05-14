@@ -82,3 +82,13 @@ export const getTotalTickets = (event) => {
     }
     return event?.totalTickets ?? 0;
 };
+
+export const getSoldCount = (event) => {
+    if (event?.ticketTypes?.length > 0) {
+        return event.ticketTypes.reduce(
+            (sum, t) => sum + Math.max(0, (t.quantity || 0) - (t.remaining || 0)),
+            0
+        );
+    }
+    return Math.max(0, (event?.totalTickets || 0) - (event?.remainingTickets || 0));
+};

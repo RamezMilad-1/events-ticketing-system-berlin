@@ -47,13 +47,13 @@ const VenueGrid = ({ events = [] }) => {
                         ) : (
                             <div className="absolute inset-0 bg-gradient-to-br from-primary-400 to-primary-700" />
                         )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/85 via-slate-900/30 to-transparent" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/95 via-slate-900/45 to-transparent" />
                         <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 text-white">
                             <div className="flex items-start gap-1.5">
-                                <MapPin size={14} className="mt-0.5 shrink-0" />
-                                <h3 className="font-bold text-sm sm:text-base leading-snug line-clamp-2">{venue.name}</h3>
+                                <MapPin size={14} className="mt-0.5 shrink-0 drop-shadow" />
+                                <h3 className="font-bold text-sm sm:text-base leading-snug line-clamp-2 text-white drop-shadow-md">{venue.name}</h3>
                             </div>
-                            <p className="text-xs text-white/80 mt-1">
+                            <p className="text-xs text-white/90 mt-1 drop-shadow">
                                 {venue.count} {venue.count === 1 ? 'event' : 'events'}
                             </p>
                         </div>

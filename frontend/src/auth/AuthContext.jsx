@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { authService, userService } from '../services/api';
+import { authService, userService, tokenStore } from '../services/api';
 import Loader from '../components/ui/Loader';
 
 const AuthContext = createContext();
@@ -17,7 +17,9 @@ export const AuthProvider = ({ children }) => {
             }
             setUser(null);
             return null;
-        } catch {
+        } catch (err) {
+            // Stored token is invalid or expired — drop it so we don't keep sending it.
+            if (err?.response?.status === 401) tokenStore.clear();
             setUser(null);
             return null;
         }
@@ -37,6 +39,7 @@ export const AuthProvider = ({ children }) => {
     const login = async (credentials) => {
         const response = await authService.login(credentials);
         if (response.data?.user) {
+            if (response.data.token) tokenStore.set(response.data.token);
             setUser(response.data.user);
             return response.data.user;
         }
@@ -54,6 +57,7 @@ export const AuthProvider = ({ children }) => {
         } catch (err) {
             console.error('Logout error:', err);
         } finally {
+            tokenStore.clear();
             setUser(null);
         }
     };

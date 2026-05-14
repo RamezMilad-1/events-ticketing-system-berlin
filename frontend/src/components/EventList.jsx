@@ -9,7 +9,7 @@ import Loader from './ui/Loader';
 import EmptyState from './ui/EmptyState';
 import { eventService } from '../services/api';
 import { categoryOptions } from '../utils/categoryFields';
-import { getMinPrice } from '../utils/format';
+import { getMinPrice, getSoldCount } from '../utils/format';
 
 const SORT_OPTIONS = [
     { value: 'date-asc', label: 'Date: Soonest first' },
@@ -47,12 +47,13 @@ const EventList = () => {
         fetchEvents();
     }, []);
 
-    // Sync URL → state on direct navigation (e.g. /?category=concert)
+    // Sync URL → state on navigation. Derive both values fully from the URL so that
+    // clicking a category tile (?category=X) clears any prior location filter, and vice
+    // versa for venue tiles (?location=Y). Without resetting missing params, the old
+    // filter would stick in local state and silently combine with the new one.
     useEffect(() => {
-        const cat = searchParams.get('category');
-        const loc = searchParams.get('location');
-        if (cat && cat !== category) setCategory(cat);
-        if (loc && loc !== location) setLocation(loc);
+        setCategory(searchParams.get('category') || 'all');
+        setLocation(searchParams.get('location') || '');
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [searchParams]);
 
@@ -62,6 +63,16 @@ const EventList = () => {
                 .filter((ev) => new Date(ev.date) >= new Date())
                 .sort((a, b) => new Date(a.date) - new Date(b.date)),
         [events]
+    );
+
+    // Hot events: top 5 upcoming events by tickets sold. Falls back gracefully to
+    // chronological order when no sales have happened yet (all sold counts are 0).
+    const hotEvents = useMemo(
+        () =>
+            [...upcomingEvents]
+                .sort((a, b) => getSoldCount(b) - getSoldCount(a))
+                .slice(0, 5),
+        [upcomingEvents]
     );
 
     const filteredEvents = useMemo(() => {
@@ -112,7 +123,11 @@ const EventList = () => {
     };
 
     const handleCategorySelect = (cat) => {
-        setCategory(cat);
+        // Reset every other filter so the user gets a clean view of just this category.
+        // The URL-sync effect picks up the new params and overwrites local state for category/location.
+        setSearch('');
+        setDateFrom('');
+        setDateTo('');
         setSearchParams({ category: cat });
         setTimeout(() => {
             const grid = document.getElementById('event-grid');
@@ -140,8 +155,8 @@ const EventList = () => {
 
     return (
         <div className="min-h-screen">
-            {/* Hot Events */}
-            <HotEventsCarousel events={upcomingEvents.slice(0, 8)} />
+            {/* Hot Events — top 5 upcoming events by tickets sold */}
+            <HotEventsCarousel events={hotEvents} />
 
             {/* Category tiles */}
             <CategoryTiles events={events} onSelect={handleCategorySelect} />
@@ -203,6 +218,16 @@ const EventList = () => {
                                     {activeFilterCount}
                                 </span>
                             )}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={clearFilters}
+                            disabled={activeFilterCount === 0}
+                            className="btn btn-outline btn-sm shrink-0"
+                            aria-label="Clear all filters"
+                        >
+                            <X size={14} />
+                            Clear filters
                         </button>
                     </div>
                 </div>

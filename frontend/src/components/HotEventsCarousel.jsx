@@ -95,15 +95,15 @@ const HotEventsCarousel = ({ events }) => {
                                         <Calendar size={56} strokeWidth={1.5} />
                                     </div>
                                 )}
-                                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/85 via-slate-900/20 to-transparent" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/95 via-slate-900/40 to-transparent" />
                                 <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
                                     {event.category && (
                                         <span className="inline-block text-[10px] font-bold uppercase tracking-wider bg-primary-500/90 px-2 py-0.5 rounded-full mb-2">
                                             {event.category}
                                         </span>
                                     )}
-                                    <h3 className="font-bold text-base leading-snug line-clamp-2">{event.title}</h3>
-                                    <div className="mt-1.5 flex items-center gap-3 text-xs text-white/80">
+                                    <h3 className="font-bold text-base leading-snug line-clamp-2 text-white drop-shadow-md">{event.title}</h3>
+                                    <div className="mt-1.5 flex items-center gap-3 text-xs text-white/90 drop-shadow">
                                         <span className="inline-flex items-center gap-1">
                                             <Calendar size={12} />
                                             {formatDateShort(event.date)}

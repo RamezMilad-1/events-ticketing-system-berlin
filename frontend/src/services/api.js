@@ -2,10 +2,37 @@ import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
 
+// Token storage helpers — backend returns the JWT in the login response body so we
+// can send it via Authorization: Bearer. This works across origins even when the
+// browser drops cross-site cookies (Safari, Chrome with third-party cookies off),
+// which is the case on Render where backend and frontend live on different
+// *.onrender.com subdomains.
+const TOKEN_KEY = 'eh_token';
+export const tokenStore = {
+    get() {
+        try { return localStorage.getItem(TOKEN_KEY); } catch { return null; }
+    },
+    set(token) {
+        try { if (token) localStorage.setItem(TOKEN_KEY, token); } catch {}
+    },
+    clear() {
+        try { localStorage.removeItem(TOKEN_KEY); } catch {}
+    },
+};
+
 const api = axios.create({
     baseURL: API_URL,
     headers: { 'Content-Type': 'application/json' },
     withCredentials: true,
+});
+
+api.interceptors.request.use((config) => {
+    const token = tokenStore.get();
+    if (token) {
+        config.headers = config.headers || {};
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
 });
 
 // Endpoints that are safe to fail with 401 silently (e.g. initial profile probe on public pages)

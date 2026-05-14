@@ -2,10 +2,16 @@ const nodemailer = require('nodemailer');
 
 let cachedTransporter = null;
 
+let warnedMissingHost = false;
+
 function getTransporter() {
     if (cachedTransporter) return cachedTransporter;
 
     if (!process.env.EMAIL_HOST) {
+        if (process.env.NODE_ENV === 'production' && !warnedMissingHost) {
+            warnedMissingHost = true;
+            console.error('[email:fatal] EMAIL_HOST missing in production — OTP emails are NOT being delivered. Set EMAIL_HOST/EMAIL_PORT/EMAIL_USER/EMAIL_PASS on the backend service.');
+        }
         return null; // signal: dev fallback, log to console
     }
 

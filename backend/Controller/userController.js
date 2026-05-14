@@ -120,7 +120,7 @@ const userController = {
             return res
                 .cookie('token', token, { ...COOKIE_OPTIONS(), maxAge: 7 * 24 * 60 * 60 * 1000 })
                 .status(200)
-                .json({ success: true, message: 'Login successful', user: userWithoutPassword });
+                .json({ success: true, message: 'Login successful', user: userWithoutPassword, token });
         } catch (error) {
             console.error('Error logging in:', error);
             return res.status(500).json({ success: false, message: 'Server error' });
