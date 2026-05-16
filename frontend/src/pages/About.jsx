@@ -9,7 +9,7 @@ const About = () => (
                 <span className="inline-block bg-primary-500 text-white text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full mb-4">
                     About eventHub
                 </span>
-                <h1 className="text-3xl sm:text-5xl font-extrabold leading-tight max-w-3xl">
+                <h1 className="text-3xl sm:text-5xl font-extrabold leading-tight max-w-3xl text-white">
                     The easiest way to discover Berlin's best events.
                 </h1>
                 <p className="mt-4 text-white/85 text-lg max-w-2xl">

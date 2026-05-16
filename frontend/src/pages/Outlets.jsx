@@ -129,7 +129,7 @@ const Outlets = () => {
             {/* Hero */}
             <div className="bg-navy-700 text-white">
                 <div className="container-page py-12 sm:py-16">
-                    <h1 className="text-3xl sm:text-4xl font-extrabold mb-3">Our outlets</h1>
+                    <h1 className="text-3xl sm:text-4xl font-extrabold mb-3 text-white">Our outlets</h1>
                     <p className="max-w-2xl text-white/85">
                         Outlets are eventHub's physical box-office locations across Berlin where you can buy tickets in person and pay cash. No online booking needed — just walk in, browse what's on, and our staff will print your ticket on the spot.
                     </p>

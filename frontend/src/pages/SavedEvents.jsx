@@ -77,7 +77,7 @@ const SavedEvents = () => {
             {/* Hero */}
             <div className="bg-navy-700 text-white">
                 <div className="container-page py-10 sm:py-14">
-                    <h1 className="text-3xl sm:text-4xl font-extrabold mb-2 flex items-center gap-3">
+                    <h1 className="text-3xl sm:text-4xl font-extrabold mb-2 flex items-center gap-3 text-white">
                         <Heart size={28} className="text-primary-400" fill="currentColor" />
                         Your saved events
                     </h1>

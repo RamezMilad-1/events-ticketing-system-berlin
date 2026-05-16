@@ -49,7 +49,7 @@ const Contact = () => {
         <div className="bg-surface-200/40 min-h-screen pb-16">
             <div className="bg-navy-700 text-white">
                 <div className="container-page py-12 sm:py-16">
-                    <h1 className="text-3xl sm:text-4xl font-extrabold mb-3">Contact &amp; Support</h1>
+                    <h1 className="text-3xl sm:text-4xl font-extrabold mb-3 text-white">Contact &amp; Support</h1>
                     <p className="max-w-2xl text-white/85">
                         Got a question about a booking, a venue, or selling tickets? Send us a message — our support team reads every one and replies within 1–2 business days.
                     </p>
