@@ -2,49 +2,20 @@
 
 > Production-deployed full-stack MERN application for discovering and booking events in Berlin. Three role-based dashboards, multi-tier ticketing, atomic theatre-seat allocation, OTP password reset, and organiser analytics.
 
-**[Live demo](https://events-ticketing-system-berlin-3.onrender.com)** · **[Test credentials](#test-credentials)** · **[Tech stack](#tech-stack)** · **[Architecture highlights](#architecture-highlights)**
-
 ---
 
-## Highlights
+## Live Demo
 
-- **Production deployed** on Render (web service + static site) with MongoDB Atlas. Live URL above.
-- **Cross-origin JWT auth** — Authorization Bearer token primary, httpOnly cookie fallback. Survives third-party cookie blocking in Safari and Chrome.
-- **Three role-based dashboards** with route-level RBAC: Standard User, Organiser, System Admin.
-- **Atomic seat allocation** for theatre events — two simultaneous bookings can't grab the same seat; the second request is rejected at the database layer.
-- **Multi-tier ticket inventory** — each tier (VIP, Standard, Early Bird, etc.) tracks its own price and remaining count; bookings update counts in a single DB operation to prevent over-selling.
-- **OTP password reset** — 6-digit codes, SHA-256-hashed at rest, 10-minute TTL, 5-attempt lockout, delivered via Brevo's HTTPS transactional API (chosen over SMTP because Render's free tier blocks outbound SMTP).
-- **Hardened auth surface** — bcrypt (10 rounds), Helmet, CORS allowlist, rate-limited login/register/reset (50 req per 15 min), JWT secret required in production (fail-fast on boot).
-- **Organiser analytics** with Recharts — per-event "% booked" bar chart, sold-vs-remaining donut, aggregate KPIs.
-- **Resilient infrastructure** — Mongoose retry loop on boot, graceful SIGTERM shutdown, fail-fast on unhandled rejections, trust-proxy enabled for Render's edge.
-- **Client-side image compression** for profile pictures and event posters — no oversized payloads hitting the server.
+**https://events-ticketing-system-berlin-3.onrender.com**
 
----
+Sign in with either of these test accounts (both exist on the production database):
 
-## Tech Stack
+| Role | Email | Password |
+|---|---|---|
+| **System Admin** | `admin@eventhub.com` | `Admin@2026` |
+| **Organizer** | `organizer@eventhub.com` | `Organizer@2026` |
 
-| Layer | Technologies |
-|---|---|
-| **Frontend** | React 18, Vite, Tailwind CSS, React Router 6, Axios, Recharts, Chart.js, react-toastify, Lucide |
-| **Backend** | Node.js, Express 4, REST API |
-| **Database** | MongoDB, Mongoose 7 (local + Atlas) |
-| **Auth & security** | JWT (Bearer + httpOnly cookie), bcrypt, Helmet, express-rate-limit, cookie-parser |
-| **Email** | Brevo transactional API (HTTPS), with console-log fallback for local dev |
-| **Deployment** | Render (web service + static site), MongoDB Atlas |
-| **Tooling** | ESLint, Nodemon, dotenv, Git, GitHub |
-
----
-
-## Test Credentials
-
-Sign in to the [live demo](https://events-ticketing-system-berlin-3.onrender.com) with either account — both exist on the production database.
-
-```
-System Admin    admin@eventhub.com        Admin@2026
-Organizer       organizer@eventhub.com    Organizer@2026
-```
-
-Register a Standard User from the sign-up form to evaluate the visitor experience.
+To explore the visitor experience, register a Standard User from the sign-up form.
 
 ---
 
@@ -92,21 +63,32 @@ Register a Standard User from the sign-up form to evaluate the visitor experienc
 
 ---
 
-## Architecture Highlights
+## Tech Stack
 
-These are the engineering decisions worth zooming in on.
+| Layer | Technologies |
+|---|---|
+| **Frontend** | React 18, Vite, Tailwind CSS, React Router 6, Axios, Recharts, Chart.js, react-toastify, Lucide |
+| **Backend** | Node.js, Express 4, REST API |
+| **Database** | MongoDB, Mongoose 7 (local + Atlas) |
+| **Auth & security** | JWT (Bearer + httpOnly cookie), bcrypt, Helmet, express-rate-limit, cookie-parser |
+| **Email** | Brevo transactional API (HTTPS), with console-log fallback for local dev |
+| **Deployment** | Render (web service + static site), MongoDB Atlas |
+| **Tooling** | ESLint, Nodemon, dotenv, Git, GitHub |
 
-**Cross-origin authentication.** Render hosts frontend and backend on different `*.onrender.com` subdomains. Because `onrender.com` is on the Public Suffix List, browsers classify them as cross-site, and Safari + Chrome's third-party cookie blocking silently drops the JWT cookie. Solution: the backend also returns the token in the login response body; the client stores it in `localStorage` and attaches it as `Authorization: Bearer …` on every request. The cookie path is retained as a fallback. Works in every browser regardless of cookie policy.
+---
 
-**Concurrent seat-conflict prevention.** Theatre events render a seat grid. When two users click "Confirm" on the same seat at the same time, only the first commit succeeds — the server re-checks taken seats inside the booking transaction and rejects the loser with a clear error. No optimistic UI lies.
+## Highlights
 
-**Per-tier inventory in one write.** Multi-tier events store an array of ticket types each with `{ price, quantity, remaining }`. A booking decrements `remaining` for each requested tier in a single `findOneAndUpdate` so concurrent bookings can't oversell.
-
-**Privacy-preserving password reset.** The `/forgetPassword/request` endpoint returns 200 whether or not the email is registered, preventing user enumeration. OTPs are hashed (SHA-256) before storage; attempts are capped at 5; tokens expire after 10 minutes.
-
-**Email delivery without SMTP.** Render's free tier blocks all outbound SMTP traffic (ports 465 and 587 confirmed unreachable), so a Gmail-via-nodemailer setup hangs every password-reset request for the full 2-minute connection timeout. Solution: send through Brevo's HTTPS transactional API instead. Same OTP flow, same templates, but the request goes over HTTPS and arrives in ~30 seconds. The implementation falls back to a dev console log when no API key is set, so local development needs zero email setup.
-
-**Production resilience.** Mongoose connects with a retry loop (5 attempts, exponential delay). `unhandledRejection` and `uncaughtException` trigger a graceful shutdown so the process manager can restart cleanly. `app.set('trust proxy', 1)` makes secure cookies + rate-limit IP detection work behind Render's edge.
+- **Production deployed** on Render (web service + static site) with MongoDB Atlas. Live URL above.
+- **Cross-origin JWT auth** — Authorization Bearer token primary, httpOnly cookie fallback. Survives third-party cookie blocking in Safari and Chrome.
+- **Three role-based dashboards** with route-level RBAC: Standard User, Organiser, System Admin.
+- **Atomic seat allocation** for theatre events — two simultaneous bookings can't grab the same seat; the second request is rejected at the database layer.
+- **Multi-tier ticket inventory** — each tier (VIP, Standard, Early Bird, etc.) tracks its own price and remaining count; bookings update counts in a single DB operation to prevent over-selling.
+- **OTP password reset** — 6-digit codes, SHA-256-hashed at rest, 10-minute TTL, 5-attempt lockout, delivered via Brevo's HTTPS transactional API (chosen over SMTP because Render's free tier blocks outbound SMTP).
+- **Hardened auth surface** — bcrypt (10 rounds), Helmet, CORS allowlist, rate-limited login/register/reset (50 req per 15 min), JWT secret required in production (fail-fast on boot).
+- **Organiser analytics** with Recharts — per-event "% booked" bar chart, sold-vs-remaining donut, aggregate KPIs.
+- **Resilient infrastructure** — Mongoose retry loop on boot, graceful SIGTERM shutdown, fail-fast on unhandled rejections, trust-proxy enabled for Render's edge.
+- **Client-side image compression** for profile pictures and event posters — no oversized payloads hitting the server.
 
 ---
 
@@ -131,6 +113,24 @@ These are the engineering decisions worth zooming in on.
 - Approve / decline / delete any event with status filters
 - Manage users — search, change roles, delete accounts (current admin row locked against self-demotion)
 - Manage outlets (physical ticket pickup points) and triage contact-form messages
+
+---
+
+## Architecture Highlights
+
+These are the engineering decisions worth zooming in on.
+
+**Cross-origin authentication.** Render hosts frontend and backend on different `*.onrender.com` subdomains. Because `onrender.com` is on the Public Suffix List, browsers classify them as cross-site, and Safari + Chrome's third-party cookie blocking silently drops the JWT cookie. Solution: the backend also returns the token in the login response body; the client stores it in `localStorage` and attaches it as `Authorization: Bearer …` on every request. The cookie path is retained as a fallback. Works in every browser regardless of cookie policy.
+
+**Concurrent seat-conflict prevention.** Theatre events render a seat grid. When two users click "Confirm" on the same seat at the same time, only the first commit succeeds — the server re-checks taken seats inside the booking transaction and rejects the loser with a clear error. No optimistic UI lies.
+
+**Per-tier inventory in one write.** Multi-tier events store an array of ticket types each with `{ price, quantity, remaining }`. A booking decrements `remaining` for each requested tier in a single `findOneAndUpdate` so concurrent bookings can't oversell.
+
+**Privacy-preserving password reset.** The `/forgetPassword/request` endpoint returns 200 whether or not the email is registered, preventing user enumeration. OTPs are hashed (SHA-256) before storage; attempts are capped at 5; tokens expire after 10 minutes.
+
+**Email delivery without SMTP.** Render's free tier blocks all outbound SMTP traffic (ports 465 and 587 confirmed unreachable), so a Gmail-via-nodemailer setup hangs every password-reset request for the full 2-minute connection timeout. Solution: send through Brevo's HTTPS transactional API instead. Same OTP flow, same templates, but the request goes over HTTPS and arrives in ~30 seconds. The implementation falls back to a dev console log when no API key is set, so local development needs zero email setup.
+
+**Production resilience.** Mongoose connects with a retry loop (5 attempts, exponential delay). `unhandledRejection` and `uncaughtException` trigger a graceful shutdown so the process manager can restart cleanly. `app.set('trust proxy', 1)` makes secure cookies + rate-limit IP detection work behind Render's edge.
 
 ---
 
